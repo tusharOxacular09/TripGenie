@@ -1,0 +1,22 @@
+{
+  "name": "tripgenie",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace frontend",
+    "dev:backend": "npm run dev --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "build:types": "npm run build --workspace @tripgenie/types",
+    "start:frontend": "npm run start --workspace frontend",
+    "start:backend": "npm run start --workspace backend",
+    "typecheck:backend": "npm run typecheck --workspace backend",
+    "typecheck:types": "npm run typecheck --workspace @tripgenie/types",
+    "lint:frontend": "npm run lint --workspace frontend"
+  }
+}
