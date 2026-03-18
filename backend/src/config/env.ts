@@ -14,5 +14,6 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 4000),
   mongodbUri: process.env.MONGODB_URI ?? "",
+  mongodbDbName: process.env.MONGODB_DB_NAME ?? "tripgenie",
   jwtSecret: process.env.JWT_SECRET as string,
 };

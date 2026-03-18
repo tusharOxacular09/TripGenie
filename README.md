@@ -25,7 +25,8 @@ Current state: initial production-style setup only. No product features are impl
 - `backend/.env`
   - `PORT=4000`
   - `NODE_ENV=development`
-  - `MONGODB_URI=`
+  - `MONGODB_URI=<atlas-connection-string>`
+  - `MONGODB_DB_NAME=tripgenie`
   - `JWT_SECRET=replace-with-a-strong-secret`
 
 ## Install

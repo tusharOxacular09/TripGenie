@@ -4,7 +4,7 @@ import { env } from "./config/env";
 
 const startServer = async (): Promise<void> => {
   try {
-    await connectDatabase(env.mongodbUri);
+    await connectDatabase(env.mongodbUri, env.mongodbDbName);
 
     app.listen(env.port, () => {
       console.log(`Backend listening on port ${env.port}`);

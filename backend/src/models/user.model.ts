@@ -1,18 +1,31 @@
-import { Schema, model } from "mongoose";
+import { Model, Schema, model, models } from "mongoose";
 
-export interface UserDocument {
+export interface User {
   name: string;
   email: string;
   password: string;
 }
 
-const userSchema = new Schema<UserDocument>(
+type UserModel = Model<User>;
+
+const userSchema = new Schema<User, UserModel>(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+    },
+    password: { type: String, required: true, minlength: 6 },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    strict: true,
+    versionKey: false,
+  }
 );
 
-export const UserModel = model<UserDocument>("User", userSchema);
+export const UserModel = (models.User as UserModel) || model<User, UserModel>("User", userSchema);
