@@ -1,9 +1,37 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 
-export const register = async (_req: Request, res: Response): Promise<void> => {
-  res.status(501).json({ message: "Not implemented yet: register" });
+import { authService } from "../services/auth.service";
+
+const register = (req: Request, res: Response, next: NextFunction): void => {
+  authService
+    .register(req.body)
+    .then((user) => {
+      res.status(201).json({ message: "User registered successfully", user });
+    })
+    .catch(next);
 };
 
-export const login = async (_req: Request, res: Response): Promise<void> => {
-  res.status(501).json({ message: "Not implemented yet: login" });
+const login = (req: Request, res: Response, next: NextFunction): void => {
+  authService
+    .login(req.body)
+    .then((result) => {
+      res.status(200).json(result);
+    })
+    .catch(next);
 };
+
+const me = (req: Request, res: Response, next: NextFunction): void => {
+  if (!req.user?.userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  authService
+    .getCurrentUser(req.user.userId)
+    .then((user) => {
+      res.status(200).json({ user });
+    })
+    .catch(next);
+};
+
+export { login, me, register };

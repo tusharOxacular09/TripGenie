@@ -3,6 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 
+import { HttpError } from "./errors/http-error";
 import { apiRouter } from "./routes";
 
 const app = express();
@@ -17,7 +18,7 @@ app.get("/", (_req, res) => {
 });
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({ message: "Hello! Health check successful." });
+  res.status(200).send("OK");
 });
 
 app.use("/api", apiRouter);
@@ -26,10 +27,16 @@ app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (error instanceof HttpError) {
+    res.status(error.statusCode).json({ message: error.message });
+    return;
+  }
+
+  const message = error instanceof Error ? error.message : "Internal server error";
   res.status(500).json({
     message: "Internal server error",
-    error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    error: process.env.NODE_ENV === "development" ? message : undefined,
   });
 });
 

@@ -5,12 +5,8 @@ import { env } from "./config/env";
 const startServer = async (): Promise<void> => {
   try {
     await connectDatabase(env.mongodbUri, env.mongodbDbName);
-
-    app.listen(env.port, () => {
-      console.log(`Backend listening on port ${env.port}`);
-    });
-  } catch (error) {
-    console.error("Failed to start backend", error);
+    app.listen(env.port);
+  } catch (_error) {
     process.exit(1);
   }
 };
