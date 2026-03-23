@@ -1,16 +1,16 @@
-const TOKEN_KEY = "tripgenie_token";
+const REFRESH_TOKEN_KEY = "tripgenie_refresh_token";
 
 export const authStorage = {
-  getToken: (): string => {
+  getRefreshToken: (): string => {
     if (typeof window === "undefined") {
       return "";
     }
-    return localStorage.getItem(TOKEN_KEY) ?? "";
+    return localStorage.getItem(REFRESH_TOKEN_KEY) ?? "";
   },
-  setToken: (token: string): void => {
-    localStorage.setItem(TOKEN_KEY, token);
+  setRefreshToken: (refreshToken: string): void => {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   },
-  clearToken: (): void => {
-    localStorage.removeItem(TOKEN_KEY);
+  clearRefreshToken: (): void => {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 };

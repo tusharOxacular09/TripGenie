@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authStorage } from "../lib/auth";
+import { useAppDispatch } from "../store/hooks";
+import { logout } from "../store/auth.slice";
 
 type Props = {
   children: React.ReactNode;
@@ -11,9 +13,11 @@ type Props = {
 export function AppShell({ children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const handleLogout = () => {
-    authStorage.clearToken();
+    authStorage.clearRefreshToken();
+    dispatch(logout());
     router.replace("/login");
   };
 
@@ -33,6 +37,9 @@ export function AppShell({ children }: Props) {
             </Link>
             <Link href="/trips/new" className={navLinkClass("/trips/new")}>
               Create Trip
+            </Link>
+            <Link href="/profile" className={navLinkClass("/profile")}>
+              Profile
             </Link>
             <button
               type="button"

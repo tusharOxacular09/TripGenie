@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "../../components/app-shell";
 import { ProtectedPage } from "../../components/protected-page";
-import { api, ApiError } from "../../lib/api";
+import { getErrorMessage } from "../../shared/error-message";
+import { tripsApi } from "../../services/api/trips.api";
 import { Trip } from "../../types/api";
 
 export default function DashboardPage() {
@@ -15,10 +16,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadTrips = async () => {
       try {
-        const response = await api.listTrips();
-        setTrips(response.trips);
+        const response = await tripsApi.listTrips();
+        setTrips(response);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Failed to load trips");
+        setError(getErrorMessage(err, "Failed to load trips"));
       } finally {
         setLoading(false);
       }

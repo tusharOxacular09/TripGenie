@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { api, ApiError } from "../../lib/api";
-import { authStorage } from "../../lib/auth";
+import { loginFlow } from "../../features/auth/auth.thunks";
+import { authValidators } from "../../features/auth/auth.validators";
+import { getErrorMessage } from "../../shared/error-message";
+import { useAppDispatch } from "../../store/hooks";
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,11 +21,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await api.login({ email, password });
-      authStorage.setToken(result.token);
+      authValidators.validateLoginInput(email, password);
+      await dispatch(loginFlow({ email, password }));
       router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Login failed");
+      setError(getErrorMessage(err, "Login failed"));
     } finally {
       setLoading(false);
     }

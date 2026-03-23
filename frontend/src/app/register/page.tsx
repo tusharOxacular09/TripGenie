@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { api, ApiError } from "../../lib/api";
-import { authStorage } from "../../lib/auth";
+import { registerFlow } from "../../features/auth/auth.thunks";
+import { authValidators } from "../../features/auth/auth.validators";
+import { getErrorMessage } from "../../shared/error-message";
+import { useAppDispatch } from "../../store/hooks";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,12 +22,11 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await api.register({ name, email, password });
-      const loginResult = await api.login({ email, password });
-      authStorage.setToken(loginResult.token);
+      authValidators.validateRegisterInput(name, email, password);
+      await dispatch(registerFlow({ name, email, password }));
       router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Registration failed");
+      setError(getErrorMessage(err, "Registration failed"));
     } finally {
       setLoading(false);
     }

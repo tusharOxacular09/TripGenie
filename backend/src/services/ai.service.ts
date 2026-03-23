@@ -1,5 +1,8 @@
-import { BudgetType, EstimatedCost, HotelSuggestion, ItineraryItem } from "../models/trip.model";
+import crypto from "crypto";
+
 import { env } from "../config/env";
+import { AICacheModel } from "../models/ai-cache.model";
+import { BudgetType, EstimatedCost, HotelSuggestion, ItineraryItem } from "../models/trip.model";
 
 type GenerateTripPlanInput = {
   destination: string;
@@ -10,7 +13,7 @@ type GenerateTripPlanInput = {
 
 type TripPlanResult = {
   itinerary: ItineraryItem[];
-  estimatedCost: EstimatedCost;
+  budget: EstimatedCost;
   hotels: HotelSuggestion[];
 };
 
@@ -21,6 +24,7 @@ type RegenerateDayInput = {
 };
 
 const HOTEL_TYPES: HotelSuggestion["type"][] = ["budget", "mid", "luxury"];
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -70,7 +74,7 @@ const defaultHotels = (destination: string): HotelSuggestion[] => [
 
 const fallbackTripPlan = (input: GenerateTripPlanInput): TripPlanResult => ({
   itinerary: defaultItinerary(input.days, input.destination, input.interests),
-  estimatedCost: defaultEstimatedCost(input.days, input.budgetType),
+  budget: defaultEstimatedCost(input.days, input.budgetType),
   hotels: defaultHotels(input.destination),
 });
 
@@ -155,14 +159,14 @@ const parseTripPlan = (payload: unknown): TripPlanResult | null => {
   }
 
   const itinerary = parseItinerary(payload.itinerary);
-  const estimatedCost = parseEstimatedCost(payload.estimatedCost);
+  const budget = parseEstimatedCost(payload.budget);
   const hotels = parseHotels(payload.hotels);
 
   if (itinerary.length === 0) {
     return null;
   }
 
-  return { itinerary, estimatedCost, hotels };
+  return { itinerary, budget, hotels };
 };
 
 const parseRegeneratedActivities = (payload: unknown): string[] | null => {
@@ -178,35 +182,31 @@ const parseRegeneratedActivities = (payload: unknown): string[] | null => {
   return activities.length > 0 ? activities : null;
 };
 
-const callLlm = async (input: GenerateTripPlanInput): Promise<string | null> => {
-  const apiKey = env.openaiApiKey;
+const buildCacheKey = (input: GenerateTripPlanInput): string => {
+  const raw = `${input.destination.toLowerCase()}|${input.days}|${input.budgetType}|${input.interests
+    .map((value) => value.toLowerCase())
+    .sort()
+    .join(",")}`;
+  return crypto.createHash("sha256").update(raw).digest("hex");
+};
+
+const callGemini = async (prompt: string): Promise<string | null> => {
+  const apiKey = env.geminiApiKey;
   if (!apiKey) {
     return null;
   }
 
-  const baseUrl = env.openaiBaseUrl;
-  const model = env.openaiModel;
-  const prompt = [
-    "Generate a travel plan and return STRICT JSON only.",
-    "Do not include markdown fences or explanations.",
-    `Destination: ${input.destination}`,
-    `Days: ${input.days}`,
-    `Budget type: ${input.budgetType}`,
-    `Interests: ${input.interests.join(", ") || "none"}`,
-    "Response format:",
-    '{"itinerary":[{"day":1,"activities":["..."]}],"estimatedCost":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0},"hotels":[{"name":"...","type":"budget"}]}',
-  ].join("\n");
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages: [{ role: "user", content: prompt }],
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+      },
     }),
   });
 
@@ -215,36 +215,58 @@ const callLlm = async (input: GenerateTripPlanInput): Promise<string | null> => 
   }
 
   const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
 
-  const content = data.choices?.[0]?.message?.content;
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   return typeof content === "string" && content.trim() ? content : null;
 };
 
 const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanResult> => {
   const fallback = fallbackTripPlan(input);
+  const key = buildCacheKey(input);
+
+  const cached = await AICacheModel.findOne({ key }).lean();
+  if (cached && typeof cached.response === "object" && cached.response !== null) {
+    const parsedCached = parseTripPlan(cached.response);
+    if (parsedCached) {
+      return parsedCached;
+    }
+  }
 
   try {
-    const raw = await callLlm(input);
-    if (!raw) {
-      return fallback;
-    }
+    const prompt = [
+      "Generate a travel plan in JSON only. No markdown. No extra text.",
+      "Use this exact schema:",
+      '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0},"hotels":[{"name":"","type":"budget","description":""}]}',
+      `destination=${input.destination}`,
+      `days=${input.days}`,
+      `budget=${input.budgetType}`,
+      `interests=${input.interests.join(",") || "none"}`,
+    ].join("\n");
 
-    const parsedJson = parseJsonPayload(raw);
-    const parsedPlan = parseTripPlan(parsedJson);
-    if (!parsedPlan) {
-      return fallback;
-    }
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const raw = await callGemini(prompt);
+      if (!raw) {
+        continue;
+      }
+      const parsedJson = parseJsonPayload(raw);
+      const parsedPlan = parseTripPlan(parsedJson);
+      if (!parsedPlan) {
+        continue;
+      }
 
-    return {
-      itinerary: parsedPlan.itinerary.length > 0 ? parsedPlan.itinerary : fallback.itinerary,
-      estimatedCost: parsedPlan.estimatedCost,
-      hotels: parsedPlan.hotels.length > 0 ? parsedPlan.hotels : fallback.hotels,
-    };
+      await AICacheModel.findOneAndUpdate(
+        { key },
+        { key, input, response: parsedPlan, createdAt: new Date() },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      return parsedPlan;
+    }
   } catch {
     return fallback;
   }
+  return fallback;
 };
 
 const fallbackRegeneratedActivities = (input: RegenerateDayInput): string[] => {
@@ -257,7 +279,7 @@ const fallbackRegeneratedActivities = (input: RegenerateDayInput): string[] => {
 };
 
 const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
-  const apiKey = env.openaiApiKey;
+  const apiKey = env.geminiApiKey;
   if (!apiKey) {
     return fallbackRegeneratedActivities(input);
   }
@@ -272,27 +294,7 @@ const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
   ].join("\n");
 
   try {
-    const response = await fetch(`${env.openaiBaseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: env.openaiModel,
-        temperature: 0.4,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!response.ok) {
-      return fallbackRegeneratedActivities(input);
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string | null } }>;
-    };
-    const content = data.choices?.[0]?.message?.content;
+    const content = await callGemini(prompt);
     if (!content || !content.trim()) {
       return fallbackRegeneratedActivities(input);
     }

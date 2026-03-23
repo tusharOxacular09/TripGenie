@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const required = ["JWT_SECRET"] as const;
+const required = ["ACCESS_TOKEN_SECRET", "REFRESH_TOKEN_SECRET"] as const;
 
 required.forEach((key) => {
   if (!process.env[key]) {
@@ -15,8 +15,9 @@ export const env = {
   port: Number(process.env.PORT ?? 4000),
   mongodbUri: process.env.MONGODB_URI ?? "",
   mongodbDbName: process.env.MONGODB_DB_NAME ?? "tripgenie",
-  jwtSecret: process.env.JWT_SECRET as string,
-  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
-  openaiBaseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
-  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET as string,
+  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET as string,
+  accessTokenExpiry: process.env.ACCESS_TOKEN_EXPIRY ?? "15m",
+  refreshTokenExpiry: process.env.REFRESH_TOKEN_EXPIRY ?? "7d",
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
 };

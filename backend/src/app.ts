@@ -5,6 +5,7 @@ import morgan from "morgan";
 
 import { HttpError } from "./errors/http-error";
 import { apiRouter } from "./routes";
+import { apiResponse } from "./utils/api-response";
 
 const app = express();
 
@@ -14,7 +15,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.get("/", (_req, res) => {
-  res.status(200).json({ message: "Hello from TripGenie backend" });
+  res.status(200).json(apiResponse.success("Backend is running", { service: "tripgenie-backend" }));
 });
 
 app.get("/health", (_req, res) => {
@@ -24,20 +25,19 @@ app.get("/health", (_req, res) => {
 app.use("/api", apiRouter);
 
 app.use((_req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  res.status(404).json(apiResponse.error("Route not found"));
 });
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (error instanceof HttpError) {
-    res.status(error.statusCode).json({ message: error.message });
+    res.status(error.statusCode).json(apiResponse.error(error.message));
     return;
   }
 
   const message = error instanceof Error ? error.message : "Internal server error";
-  res.status(500).json({
-    message: "Internal server error",
-    error: process.env.NODE_ENV === "development" ? message : undefined,
-  });
+  res.status(500).json(
+    apiResponse.error("Internal server error", process.env.NODE_ENV === "development" ? { message } : {})
+  );
 });
 
 export { app };

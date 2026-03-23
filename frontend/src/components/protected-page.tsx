@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { authStorage } from "../lib/auth";
+import { useAppSelector } from "../store/hooks";
 
 type Props = {
   children: React.ReactNode;
@@ -10,15 +11,16 @@ type Props = {
 
 export function ProtectedPage({ children }: Props) {
   const router = useRouter();
-  const token = authStorage.getToken();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const hasRefreshToken = Boolean(authStorage.getRefreshToken());
 
   useEffect(() => {
-    if (!token) {
+    if (!isAuthenticated && !hasRefreshToken) {
       router.replace("/login");
     }
-  }, [router, token]);
+  }, [router, isAuthenticated, hasRefreshToken]);
 
-  if (!token) {
+  if (!isAuthenticated) {
     return <div className="py-12 text-center text-slate-400">Loading...</div>;
   }
 

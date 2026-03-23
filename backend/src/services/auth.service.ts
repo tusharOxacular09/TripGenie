@@ -1,10 +1,9 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { Types } from "mongoose";
 
-import { env } from "../config/env";
 import { HttpError } from "../errors/http-error";
 import { UserModel } from "../models/user.model";
+import { jwtUtils } from "../utils/jwt";
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 const SALT_ROUNDS = 10;
@@ -27,7 +26,8 @@ type SafeUser = {
 };
 
 type AuthResponse = {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   user: SafeUser;
 };
 
@@ -86,12 +86,13 @@ const parseLoginInput = (input: unknown): LoginInput => {
   };
 };
 
-const generateToken = (userId: string): string =>
-  jwt.sign({ userId }, env.jwtSecret, {
-    expiresIn: "7d",
-  });
+const toAuthResponse = (user: { _id: Types.ObjectId; name: string; email: string }): AuthResponse => ({
+  accessToken: jwtUtils.signAccessToken({ userId: user._id.toString() }),
+  refreshToken: jwtUtils.signRefreshToken(user._id.toString()),
+  user: toSafeUser(user),
+});
 
-const register = async (payload: unknown): Promise<SafeUser> => {
+const register = async (payload: unknown): Promise<AuthResponse> => {
   const input = parseRegisterInput(payload);
   validateRegisterInput(input);
 
@@ -109,7 +110,7 @@ const register = async (payload: unknown): Promise<SafeUser> => {
     password: passwordHash,
   });
 
-  return toSafeUser(user);
+  return toAuthResponse(user);
 };
 
 const login = async (payload: unknown): Promise<AuthResponse> => {
@@ -128,10 +129,28 @@ const login = async (payload: unknown): Promise<AuthResponse> => {
     throw new HttpError("Invalid credentials", 401);
   }
 
-  return {
-    token: generateToken(user._id.toString()),
-    user: toSafeUser(user),
-  };
+  return toAuthResponse(user);
+};
+
+const refreshAccessToken = async (refreshToken: string): Promise<{ accessToken: string }> => {
+  if (!refreshToken?.trim()) {
+    throw new HttpError("Refresh token is required", 400);
+  }
+
+  let decodedUserId = "";
+  try {
+    const decoded = jwtUtils.verifyRefreshToken(refreshToken);
+    decodedUserId = decoded.userId;
+  } catch {
+    throw new HttpError("Invalid refresh token", 401);
+  }
+
+  const user = await UserModel.findById(decodedUserId).select("_id").lean();
+  if (!user) {
+    throw new HttpError("User not found", 404);
+  }
+
+  return { accessToken: jwtUtils.signAccessToken({ userId: user._id.toString() }) };
 };
 
 const getCurrentUser = async (userId: string): Promise<SafeUser> => {
@@ -151,8 +170,57 @@ const getCurrentUser = async (userId: string): Promise<SafeUser> => {
   };
 };
 
+const updateProfile = async (userId: string, payload: unknown): Promise<SafeUser> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new HttpError("Invalid user identifier", 400);
+  }
+  if (!isRecord(payload)) {
+    throw new HttpError("Invalid request payload", 400);
+  }
+
+  const name = typeof payload.name === "string" ? payload.name.trim() : "";
+  const email = typeof payload.email === "string" ? normalizeEmail(payload.email) : "";
+
+  if (!name || !email) {
+    throw new HttpError("Name and email are required", 400);
+  }
+  if (!EMAIL_REGEX.test(email)) {
+    throw new HttpError("Invalid email format", 400);
+  }
+
+  const duplicateUser = await UserModel.findOne({
+    email,
+    _id: { $ne: new Types.ObjectId(userId) },
+  })
+    .select("_id")
+    .lean();
+  if (duplicateUser) {
+    throw new HttpError("Email already in use", 409);
+  }
+
+  const updatedUser = await UserModel.findByIdAndUpdate(
+    userId,
+    { name, email },
+    { new: true, runValidators: true }
+  )
+    .select("name email")
+    .lean();
+
+  if (!updatedUser) {
+    throw new HttpError("User not found", 404);
+  }
+
+  return {
+    id: updatedUser._id.toString(),
+    name: updatedUser.name,
+    email: updatedUser.email,
+  };
+};
+
 export const authService = {
   register,
   login,
+  refreshAccessToken,
   getCurrentUser,
+  updateProfile,
 };

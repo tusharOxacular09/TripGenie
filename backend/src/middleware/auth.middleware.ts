@@ -1,34 +1,22 @@
 import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
-
-import { env } from "../config/env";
+import { apiResponse } from "../utils/api-response";
+import { jwtUtils } from "../utils/jwt";
 
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json(apiResponse.error("Unauthorized"));
     return;
   }
 
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, env.jwtSecret);
-    if (typeof decoded !== "object" || decoded === null || !("userId" in decoded)) {
-      res.status(401).json({ message: "Invalid token" });
-      return;
-    }
-
-    const { userId } = decoded;
-    if (typeof userId !== "string" || !userId) {
-      res.status(401).json({ message: "Invalid token" });
-      return;
-    }
-
-    req.user = { userId };
+    const decoded = jwtUtils.verifyAccessToken(token);
+    req.user = { userId: decoded.userId };
     next();
   } catch (_error) {
-    res.status(401).json({ message: "Invalid token" });
+    res.status(401).json(apiResponse.error("Invalid token"));
   }
 };

@@ -117,7 +117,7 @@ const createTrip = async (userId: string, payload: unknown) => {
     budgetType: input.budgetType,
     interests: input.interests,
     itinerary: plan.itinerary,
-    estimatedCost: plan.estimatedCost,
+    estimatedCost: plan.budget,
     hotels: plan.hotels,
     status: "generated",
   });

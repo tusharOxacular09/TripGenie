@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AppShell } from "../../../components/app-shell";
 import { ProtectedPage } from "../../../components/protected-page";
-import { api, ApiError } from "../../../lib/api";
+import { tripValidators } from "../../../features/trips/trip.validators";
+import { getErrorMessage } from "../../../shared/error-message";
+import { tripsApi } from "../../../services/api/trips.api";
 import { BudgetType } from "../../../types/api";
 
 const INTERESTS = ["food", "culture", "adventure", "shopping", "nature", "history"];
@@ -27,10 +29,11 @@ export default function CreateTripPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await api.createTrip({ destination, days, budgetType, interests });
-      router.push(`/trips/${result.trip._id}`);
+      tripValidators.validateCreateTripInput(destination, days, budgetType);
+      const result = await tripsApi.createTrip({ destination, days, budgetType, interests });
+      router.push(`/trips/${result._id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create trip");
+      setError(getErrorMessage(err, "Failed to create trip"));
     } finally {
       setLoading(false);
     }

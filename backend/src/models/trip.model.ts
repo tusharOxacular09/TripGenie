@@ -24,6 +24,7 @@ export interface EstimatedCost {
 export interface HotelSuggestion {
   name: string;
   type: HotelType;
+  description?: string;
 }
 
 export interface Trip {
@@ -63,6 +64,7 @@ const hotelSuggestionSchema = new Schema<HotelSuggestion>(
   {
     name: { type: String, trim: true },
     type: { type: String, enum: hotelTypes },
+    description: { type: String, trim: true },
   },
   { _id: false, strict: true }
 );
