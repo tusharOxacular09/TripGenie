@@ -38,7 +38,7 @@ export function AppShell({ children }: Props) {
             <span className="font-display text-lg font-bold text-slate-900">TripGenie</span>
           </Link>
           <div className="w-full overflow-x-auto sm:w-auto">
-            <nav aria-label="Primary navigation" className="flex min-w-max items-center gap-2">
+            <nav aria-label="Primary navigation" className="flex min-w-max w-full items-center justify-around gap-2 sm:w-auto sm:justify-start">
               <Link href="/dashboard" className={navLinkClass("/dashboard")}>
                 Dashboard
               </Link>

@@ -107,6 +107,10 @@ const getTripForUpdate = async (userId: Types.ObjectId, tripId: string) => {
     throw new HttpError("Trip not found", 404);
   }
 
+  if (!trip.pickupPoint?.trim()) {
+    trip.pickupPoint = trip.destination;
+  }
+
   return trip;
 };
 
@@ -150,6 +154,13 @@ const getTripById = async (userId: string, tripId: string) => {
 
   if (!trip) {
     throw new HttpError("Trip not found", 404);
+  }
+
+  if (!trip.pickupPoint) {
+    return {
+      ...trip,
+      pickupPoint: trip.destination,
+    };
   }
 
   return trip;
