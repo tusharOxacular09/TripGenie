@@ -93,6 +93,7 @@ TripGenie/
 - JWT authentication with refresh flow
 - Protected multi-user dashboard
 - Create trip from:
+  - pickup point
   - destination
   - number of days
   - budget type
@@ -168,7 +169,7 @@ Base: `/api/auth`
 Base: `/api/trips` (all protected)
 
 - `POST /`
-  - body: `{ "destination": "Tokyo", "days": 4, "budgetType": "medium", "interests": ["food", "culture"] }`
+  - body: `{ "pickupPoint": "Delhi, India", "destination": "Tokyo", "days": 4, "budgetType": "medium", "interests": ["food", "culture"] }`
 - `GET /`
 - `GET /:id`
 - `DELETE /:id`
@@ -300,13 +301,13 @@ All APIs follow a consistent envelope:
 
 ## Known Limitations / Next Improvements
 
-- Add full automated integration/e2e test suite
-- Add API rate limiting for auth endpoints
-- Add deployment IaC/config files
-- Add observability (request tracing + centralized logging)
+- Implement a full automated integration/e2e test suite.
+- Enforce API rate limiting on authentication endpoints.
+- Define deployment infrastructure using IaC/config files.
+- Improve observability with request tracing and centralized logging.
+- Strengthen identity verification with email OTP / phone OTP flows.
+- Provide direct outbound hotel booking links (official hotel/OTA pages) for better conversion and backlink opportunities.
+- Introduce a RAG-enhanced travel intelligence pipeline so AI responses are grounded in fresher, destination-specific context.
+- Upgrade to a more capable paid LLM tier for better itinerary quality, more reliable cost reasoning, and larger token context.
 
 ---
-
-## License
-
-MIT
