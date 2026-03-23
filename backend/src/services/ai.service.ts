@@ -27,7 +27,7 @@ type RegenerateDayInput = {
 };
 
 const HOTEL_TYPES: HotelSuggestion["type"][] = ["budget", "mid", "luxury"];
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 const AI_CACHE_VERSION = "v3";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -358,17 +358,18 @@ const getOrCreateHotelsForDestination = async (input: GenerateTripPlanInput): Pr
 
   const hotelPrompt = [
     "You are an AI travel assistant.",
-    "Recommend hotels in STRICT JSON only with no markdown and no extra text.",
+    "Recommend hotels for this trip based on destination, budget, duration, and interests.",
     "Input:",
     `Pickup Point: ${input.pickupPoint}`,
     `Destination: ${input.destination}`,
     `Budget: ${input.budgetType}`,
     `Trip Duration: ${input.days} days`,
     `Interests: ${input.interests.join(", ") || "none"}`,
-    "Recommend exactly 3 hotels: one Budget, one Mid-range, one Luxury.",
-    "Prefer real and well-known properties, realistic rating >= 4.0, central/attraction-friendly locations.",
-    "Do NOT include image URLs. Provide image_query only.",
+    "Recommend exactly 3 hotels: one Budget, one Mid-range, and one Luxury.",
+    "Prefer real, well-known properties with realistic ratings of 4.0 or higher, ideally in central or attraction-friendly areas.",
+    "For images, provide a descriptive search query string only in image_query, not a URL.",
     'Output schema: {"recommended_hotels":[{"name":"","category":"Budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
+    "Respond with valid JSON only, no explanation, no markdown fences.",
   ].join("\n");
 
   try {
@@ -415,23 +416,22 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
 
   try {
     const prompt = [
-      "Generate a travel plan in JSON only. No markdown. No extra text.",
+      "You are an expert travel planner creating a personalized trip plan.",
       "Use this exact schema:",
       '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0}}',
-      "Create exactly one itinerary item per day from day 1 to the requested number of days.",
-      "Every day must have distinct activities. Do not repeat the same activities across days.",
-      "Reflect interests in different ways across different days.",
-      "For each day, provide 3 to 5 activities.",
-      "Each activity should be descriptive and practical, around 12 to 24 words, not short phrases.",
-      "Include a mix of morning, afternoon, and evening style recommendations.",
-      "Mention specific local experiences/areas where possible instead of generic lines.",
-      "Use pickup point and destination context to make flight estimate realistic.",
-      "If pickup point and destination are close/same, keep flights lower than long-distance trips.",
+      "Create exactly one itinerary entry per day from day 1 through the requested number of days.",
+      "Keep activities unique across days and reflect the selected interests in varied ways.",
+      "For each day, provide 3 to 5 activities written as practical, descriptive suggestions of around 12 to 24 words.",
+      "Include a balanced flow of morning, afternoon, and evening-style recommendations.",
+      "Use specific local experiences or areas when possible instead of generic suggestions.",
+      "Use pickup point and destination context to produce realistic flight estimates.",
+      "If pickup point and destination are the same or nearby, keep flight estimates lower than long-distance trips.",
       `pickup_point=${input.pickupPoint}`,
       `destination=${input.destination}`,
       `days=${input.days}`,
       `budget=${input.budgetType}`,
       `interests=${input.interests.join(",") || "none"}`,
+      "Respond with valid JSON only, no explanation, no markdown fences.",
     ].join("\n");
 
     const [raw, hotels] = await Promise.all([callGemini(prompt), getOrCreateHotelsForDestination(input)]);
