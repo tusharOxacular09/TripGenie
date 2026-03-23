@@ -324,6 +324,11 @@ const callGemini = async (prompt: string): Promise<string | null> => {
     }),
   });
 
+  if (response.status === 429) {
+    console.warn("[AI Service] Gemini API quota exhausted (429). Skipping retry to avoid additional quota burn.");
+    return null;
+  }
+
   if (!response.ok) {
     const errorBody = await response.text();
     console.error(`[AI Service] Gemini API error ${response.status}:`, errorBody);
@@ -429,26 +434,25 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
       `interests=${input.interests.join(",") || "none"}`,
     ].join("\n");
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const raw = await callGemini(prompt);
-      if (!raw) {
-        continue;
-      }
-      const parsedJson = parseJsonPayload(raw);
-      const parsedPlan = parseTripPlan(parsedJson, input);
-      if (!parsedPlan) {
-        continue;
-      }
-      const hotels = await getOrCreateHotelsForDestination(input);
-      const finalPlan: TripPlanResult = { ...parsedPlan, hotels };
+    const [raw, hotels] = await Promise.all([callGemini(prompt), getOrCreateHotelsForDestination(input)]);
 
-      await AICacheModel.findOneAndUpdate(
-        { key },
-        { key, input, response: finalPlan, createdAt: new Date() },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-      return finalPlan;
+    if (!raw) {
+      return { ...fallback, hotels };
     }
+
+    const parsedJson = parseJsonPayload(raw);
+    const parsedPlan = parseTripPlan(parsedJson, input);
+    if (!parsedPlan) {
+      return { ...fallback, hotels };
+    }
+    const finalPlan: TripPlanResult = { ...parsedPlan, hotels };
+
+    await AICacheModel.findOneAndUpdate(
+      { key },
+      { key, input, response: finalPlan, createdAt: new Date() },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    return finalPlan;
   } catch {
     const hotels = await getOrCreateHotelsForDestination(input);
     return { ...fallback, hotels };
