@@ -310,3 +310,4 @@ All APIs follow a consistent envelope:
 - Introduce a RAG-enhanced travel intelligence pipeline so AI responses are grounded in fresher, destination-specific context.
 - Upgrade to a more capable paid LLM tier for better itinerary quality, more reliable cost reasoning, and larger token context.
 - Add richer visual storytelling with high-quality destination and hotel images, plus day-wise activity imagery, to make trip plans more immersive and engaging.
+- Add region-wise currency auto-detection and a manual currency selector so users worldwide can view trip budgets in their preferred currency.

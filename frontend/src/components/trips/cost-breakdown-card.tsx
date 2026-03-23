@@ -1,4 +1,5 @@
 import { Calculator, Hotel, Plane, Ticket, UtensilsCrossed } from "lucide-react";
+import { formatInr } from "../../shared/currency";
 import { EstimatedCost } from "../../types/api";
 
 type Props = {
@@ -26,13 +27,13 @@ export function CostBreakdownCard({ breakdown }: Props) {
               <Icon className="h-4 w-4" />
               <span>{label}</span>
             </div>
-            <span className="text-sm font-medium text-slate-900">${breakdown[key].toLocaleString()}</span>
+            <span className="text-sm font-medium text-slate-900">{formatInr(breakdown[key])}</span>
           </div>
         ))}
         <div className="mt-3 border-t border-slate-200 pt-3">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-slate-900">Total</span>
-            <span className="text-lg font-bold text-indigo-600">${breakdown.total.toLocaleString()}</span>
+            <span className="text-lg font-bold text-indigo-600">{formatInr(breakdown.total)}</span>
           </div>
         </div>
       </div>

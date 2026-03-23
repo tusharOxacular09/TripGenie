@@ -46,13 +46,13 @@ const defaultEstimatedCost = (days: number, budgetType: BudgetType, pickupPoint:
     medium: 1.7,
     high: 2.5,
   };
-  const basePerDay = 90;
+  const basePerDay = 4500;
   const daily = basePerDay * multipliers[budgetType];
   const pickup = pickupPoint.trim().toLowerCase();
   const dest = destination.trim().toLowerCase();
   const sameCity = pickup === dest;
   const oneIncludesOther = pickup.includes(dest) || dest.includes(pickup);
-  const flightBase = sameCity ? 40 : oneIncludesOther ? 140 : 260;
+  const flightBase = sameCity ? 1800 : oneIncludesOther ? 5200 : 9800;
   const flights = Math.round(flightBase * multipliers[budgetType]);
   const accommodation = Math.round(days * daily * 0.45);
   const food = Math.round(days * daily * 0.3);
@@ -66,7 +66,7 @@ const defaultHotels = (destination: string): HotelSuggestion[] => [
   {
     name: `${destination} Budget Stay`,
     type: "budget",
-    pricePerNight: "$35-$60",
+    pricePerNight: "INR 2,500-4,500",
     location: "City center",
     rating: 4.1,
     imageQuery: `${destination} budget hotel exterior`,
@@ -76,7 +76,7 @@ const defaultHotels = (destination: string): HotelSuggestion[] => [
   {
     name: `${destination} City Comfort Hotel`,
     type: "mid",
-    pricePerNight: "$80-$140",
+    pricePerNight: "INR 5,500-9,500",
     location: "Prime district",
     rating: 4.3,
     imageQuery: `${destination} mid range hotel exterior`,
@@ -86,7 +86,7 @@ const defaultHotels = (destination: string): HotelSuggestion[] => [
   {
     name: `${destination} Grand Palace Hotel`,
     type: "luxury",
-    pricePerNight: "$220-$420",
+    pricePerNight: "INR 12,000-22,000",
     location: "Premium locality",
     rating: 4.6,
     imageQuery: `${destination} luxury hotel exterior`,
@@ -367,6 +367,7 @@ const getOrCreateHotelsForDestination = async (input: GenerateTripPlanInput): Pr
     `Interests: ${input.interests.join(", ") || "none"}`,
     "Recommend exactly 3 hotels: one Budget, one Mid-range, and one Luxury.",
     "Prefer real, well-known properties with realistic ratings of 4.0 or higher, ideally in central or attraction-friendly areas.",
+    "Use INR for any price values and return human-readable ranges (for example, INR 6,000-9,000).",
     "For images, provide a descriptive search query string only in image_query, not a URL.",
     'Output schema: {"recommended_hotels":[{"name":"","type":"budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""},{"name":"","type":"mid-range","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""},{"name":"","type":"luxury","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
     "Respond with valid JSON only, no explanation, no markdown fences.",
@@ -427,6 +428,7 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
       "Use pickup point and destination context to produce realistic flight estimates.",
       "If pickup point and destination are the same or nearby, keep flight estimates lower than long-distance trips.",
       "If the destination is unfamiliar, use general travel knowledge for that region.",
+      "Return all budget values in INR as plain numbers only (no currency symbols and no commas).",
       `pickup_point=${input.pickupPoint}`,
       `destination=${input.destination}`,
       `days=${input.days}`,

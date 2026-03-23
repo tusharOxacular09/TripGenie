@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Calendar, Clock, DollarSign, MapPin } from "lucide-react";
 import { budgetMeta } from "../../features/trips/budget-meta";
+import { formatInr } from "../../shared/currency";
 import { Trip } from "../../types/api";
 
 type Props = {
@@ -62,7 +63,7 @@ export function TripCard({ trip }: Props) {
               <DollarSign className="h-3.5 w-3.5" />
               Total Cost
             </div>
-            <span className="text-sm font-semibold text-slate-700">${trip.estimatedCost.total.toLocaleString()}</span>
+            <span className="text-sm font-semibold text-slate-700">{formatInr(trip.estimatedCost.total)}</span>
           </div>
         </div>
 
