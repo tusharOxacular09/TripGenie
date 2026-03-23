@@ -368,7 +368,7 @@ const getOrCreateHotelsForDestination = async (input: GenerateTripPlanInput): Pr
     "Recommend exactly 3 hotels: one Budget, one Mid-range, and one Luxury.",
     "Prefer real, well-known properties with realistic ratings of 4.0 or higher, ideally in central or attraction-friendly areas.",
     "For images, provide a descriptive search query string only in image_query, not a URL.",
-    'Output schema: {"recommended_hotels":[{"name":"","category":"Budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
+    'Output schema: {"recommended_hotels":[{"name":"","type":"budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""},{"name":"","type":"mid-range","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""},{"name":"","type":"luxury","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
     "Respond with valid JSON only, no explanation, no markdown fences.",
   ].join("\n");
 
@@ -426,6 +426,7 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
       "Use specific local experiences or areas when possible instead of generic suggestions.",
       "Use pickup point and destination context to produce realistic flight estimates.",
       "If pickup point and destination are the same or nearby, keep flight estimates lower than long-distance trips.",
+      "If the destination is unfamiliar, use general travel knowledge for that region.",
       `pickup_point=${input.pickupPoint}`,
       `destination=${input.destination}`,
       `days=${input.days}`,
@@ -457,8 +458,6 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
     const hotels = await getOrCreateHotelsForDestination(input);
     return { ...fallback, hotels };
   }
-  const hotels = await getOrCreateHotelsForDestination(input);
-  return { ...fallback, hotels };
 };
 
 const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
@@ -468,15 +467,14 @@ const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
   }
 
   const prompt = [
-    "Regenerate itinerary activities for one day and return STRICT JSON only.",
-    "Do not include markdown fences or explanations.",
+    "You are an expert travel planner regenerating activities for a single day of a trip.",
     `Destination: ${input.destination}`,
     `Day number: ${input.day}`,
     `Preferences: ${input.preferences?.trim() || "none"}`,
-    "Return 3 to 5 detailed activities.",
-    "Each activity should be descriptive and practical, around 12 to 24 words.",
-    "Activities must feel fresh and not be generic copies.",
+    "Generate 3 to 5 fresh, practical activities of around 12 to 24 words each that feel specific to the destination.",
+    "If the destination is unfamiliar, use general travel knowledge for that region.",
     'Response format: {"activities":["activity 1","activity 2","activity 3"]}',
+    "Respond with valid JSON only, no explanation, no markdown fences.",
   ].join("\n");
 
   try {
