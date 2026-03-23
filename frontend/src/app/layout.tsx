@@ -15,8 +15,30 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TripGenie",
-  description: "AI-powered trip planning platform",
+  title: {
+    default: "TripGenie - AI Travel Planner",
+    template: "%s | TripGenie",
+  },
+  description:
+    "Plan smarter trips with AI-generated itineraries, budget estimates, and hotel suggestions tailored to your destination and interests.",
+  applicationName: "TripGenie",
+  keywords: ["TripGenie", "AI travel planner", "trip itinerary", "travel budget planner", "hotel suggestions"],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "TripGenie - AI Travel Planner",
+    description:
+      "Generate personalized travel itineraries with AI, estimate trip costs, and edit plans day by day.",
+    type: "website",
+    siteName: "TripGenie",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TripGenie - AI Travel Planner",
+    description:
+      "Generate personalized travel itineraries with AI, estimate trip costs, and edit plans day by day.",
+  }
 };
 
 export default function RootLayout({
@@ -26,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${plusJakarta.variable} min-h-screen antialiased`}>
+      <body suppressHydrationWarning className={`${inter.variable} ${plusJakarta.variable} min-h-screen antialiased`}>
         <StoreProvider>
           <a
             href="#main-content"

@@ -6,26 +6,37 @@ AI-powered full-stack travel planner built as a production-style monorepo.
 
 ## Project Description
 
-> Add your final project description here.
->
-> Example: *TripGenie helps travelers generate and edit personalized itineraries using AI, with secure multi-user access and budget-aware planning.*
+TripGenie is an AI-powered full-stack travel planner where users can create personalized trips using destination, duration, budget, and interests.  
+The platform generates structured day-by-day itineraries, budget breakdowns, and hotel suggestions using Gemini AI, then lets users edit plans dynamically (add, remove, and regenerate day activities).  
+It is built with secure JWT authentication, strict multi-user data isolation, reusable modular architecture, and a polished responsive UI.
 
 ---
 
 ## Demo Video (YouTube)
 
-Add your walkthrough video link here:
+- [Watch on YouTube](https://www.youtube.com/watch?v=_nLnKHRtUU4)
 
-- [YouTube Walkthrough](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+### Video Preview
+
+[![TripGenie Walkthrough Thumbnail](https://img.youtube.com/vi/_nLnKHRtUU4/maxresdefault.jpg)](https://www.youtube.com/watch?v=_nLnKHRtUU4)
+
+<iframe
+  width="100%"
+  height="420"
+  src="https://www.youtube.com/embed/_nLnKHRtUU4"
+  title="TripGenie Application Walkthrough"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+  referrerpolicy="strict-origin-when-cross-origin"
+  allowfullscreen
+></iframe>
 
 ---
 
 ## Live Deployment URLs
 
-Static placeholders for now (update later):
-
-- Frontend: [https://tripgenie-frontend.example.com](https://tripgenie-frontend.example.com)
-- Backend API: [https://tripgenie-backend.example.com](https://tripgenie-backend.example.com)
+- Frontend: [https://tripgenie.enrolbee.com](https://tripgenie.enrolbee.com)
+- Backend API: [https://api.tripgenie.enrolbee.com](https://api.tripgenie.enrolbee.com)
 
 ---
 
