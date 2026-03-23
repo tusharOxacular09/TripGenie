@@ -12,12 +12,15 @@ type Props = {
 export function AuthLayout({ title, subtitle, children }: Props) {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      <section className="relative hidden lg:flex lg:w-1/2 overflow-hidden items-center justify-center p-12 bg-indigo-600">
+      <section
+        aria-hidden="true"
+        className="relative hidden lg:flex lg:w-1/2 overflow-hidden items-center justify-center p-12 bg-indigo-600"
+      >
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-600 to-indigo-500" />
         <div className="relative z-10 text-center space-y-6 text-indigo-50">
           <div className="inline-flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-100/20 flex items-center justify-center">
-              <Plane className="w-7 h-7 text-white" />
+              <Plane className="w-7 h-7 text-white" aria-hidden="true" />
             </div>
             <span className="font-display text-3xl font-bold">TripGenie</span>
           </div>
@@ -42,11 +45,11 @@ export function AuthLayout({ title, subtitle, children }: Props) {
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-indigo-100/5" />
       </section>
 
-      <section className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
-        <div className="w-full max-w-md space-y-6">
+      <main id="main-content" className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+        <div className="w-full max-w-md space-y-6" role="region" aria-label="Authentication form">
           <div className="lg:hidden flex items-center gap-2 justify-center mb-4">
             <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
-              <Plane className="w-5 h-5 text-white" />
+              <Plane className="w-5 h-5 text-white" aria-hidden="true" />
             </div>
             <Link href="/login" className="font-display text-xl font-bold text-slate-900">
               TripGenie
@@ -58,7 +61,7 @@ export function AuthLayout({ title, subtitle, children }: Props) {
           </div>
           {children}
         </div>
-      </section>
+      </main>
     </div>
   );
 }

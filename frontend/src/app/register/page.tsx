@@ -22,6 +22,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const nameInputId = "register-name";
+  const emailInputId = "register-email";
+  const passwordInputId = "register-password";
 
   useEffect(() => {
     if (isAuthenticated || hasRefreshToken) {
@@ -47,11 +50,19 @@ export default function RegisterPage() {
   return (
     <AuthLayout title="Create your account" subtitle="Start planning smarter trips with AI">
       <form onSubmit={onSubmit} className="space-y-5">
-        {error ? <p className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <p role="alert" aria-live="polite" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error}
+          </p>
+        ) : null}
         <div className="space-y-2">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Full name</label>
+          <label htmlFor={nameInputId} className="mb-1.5 block text-sm font-medium text-slate-700">
+            Full name
+          </label>
           <input
+            id={nameInputId}
             required
+            autoComplete="name"
             placeholder="Alex Traveler"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -59,10 +70,14 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+          <label htmlFor={emailInputId} className="mb-1.5 block text-sm font-medium text-slate-700">
+            Email
+          </label>
           <input
+            id={emailInputId}
             type="email"
             required
+            autoComplete="email"
             placeholder="example@gmail.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -70,12 +85,16 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+          <label htmlFor={passwordInputId} className="mb-1.5 block text-sm font-medium text-slate-700">
+            Password
+          </label>
           <div className="relative">
             <input
+              id={passwordInputId}
               type={showPassword ? "text" : "password"}
               required
               minLength={6}
+              autoComplete="new-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -84,9 +103,11 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-controls={passwordInputId}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
             </button>
           </div>
           <p className="text-xs text-slate-500">Minimum 6 characters</p>

@@ -31,11 +31,11 @@ export function AppShell({ children }: Props) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
-              <Plane className="h-5 w-5 text-white" />
+              <Plane className="h-5 w-5 text-white" aria-hidden="true" />
             </span>
             <span className="font-display text-lg font-bold text-slate-900">TripGenie</span>
           </Link>
-          <nav className="flex items-center gap-2">
+          <nav aria-label="Primary navigation" className="flex items-center gap-2">
             <Link href="/dashboard" className={navLinkClass("/dashboard")}>
               Dashboard
             </Link>
@@ -55,7 +55,9 @@ export function AppShell({ children }: Props) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <main id="main-content" className="mx-auto max-w-6xl px-4 py-8">
+        {children}
+      </main>
     </div>
   );
 }
