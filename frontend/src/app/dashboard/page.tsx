@@ -61,7 +61,7 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((item) => (
               <TripCardSkeleton key={item} />
             ))}
@@ -80,7 +80,7 @@ export default function DashboardPage() {
             action={!search ? { label: "Create your first trip", onClick: () => router.push("/trips/new") } : undefined}
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredTrips.map((trip) => (
               <TripCard key={trip._id} trip={trip} />
             ))}

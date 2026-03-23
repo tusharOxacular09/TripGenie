@@ -173,6 +173,7 @@ export default function TripDetailsPage() {
                 <ItineraryDayEditor
                   key={dayPlan.day}
                   dayPlan={dayPlan}
+                  destination={trip.destination}
                   onAdd={onAddActivity}
                   onRemove={onRemoveActivity}
                   onRegenerate={onRegenerateDay}

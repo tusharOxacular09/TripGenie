@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { env } from "../config/env";
 import { AICacheModel } from "../models/ai-cache.model";
 import { BudgetType, EstimatedCost, HotelSuggestion, ItineraryItem } from "../models/trip.model";
+import { createFallbackItinerary, createFallbackRegeneratedActivities } from "./ai-fallback.service";
 
 type GenerateTripPlanInput = {
   destination: string;
@@ -25,6 +26,7 @@ type RegenerateDayInput = {
 
 const HOTEL_TYPES: HotelSuggestion["type"][] = ["budget", "mid", "luxury"];
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const AI_CACHE_VERSION = "v2";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -53,19 +55,6 @@ const defaultEstimatedCost = (days: number, budgetType: BudgetType): EstimatedCo
   return { flights, accommodation, food, activities, total };
 };
 
-const defaultItinerary = (days: number, destination: string, interests: string[]): ItineraryItem[] => {
-  const interestLabel = interests.length > 0 ? interests.join(", ") : "local highlights";
-
-  return Array.from({ length: days }, (_, index) => ({
-    day: index + 1,
-    activities: [
-      `Explore ${destination} city center`,
-      `Enjoy ${interestLabel}`,
-      `Evening walk and local dining`,
-    ],
-  }));
-};
-
 const defaultHotels = (destination: string): HotelSuggestion[] => [
   { name: `${destination} Budget Stay`, type: "budget" },
   { name: `${destination} City Comfort Hotel`, type: "mid" },
@@ -73,7 +62,7 @@ const defaultHotels = (destination: string): HotelSuggestion[] => [
 ];
 
 const fallbackTripPlan = (input: GenerateTripPlanInput): TripPlanResult => ({
-  itinerary: defaultItinerary(input.days, input.destination, input.interests),
+  itinerary: createFallbackItinerary(input.days, input.destination, input.interests),
   budget: defaultEstimatedCost(input.days, input.budgetType),
   hotels: defaultHotels(input.destination),
 });
@@ -115,6 +104,47 @@ const parseItinerary = (value: unknown): ItineraryItem[] => {
     .filter((item): item is ItineraryItem => item !== null);
 };
 
+const normalizeItinerary = (itinerary: ItineraryItem[], input: GenerateTripPlanInput): ItineraryItem[] => {
+  const byDay = new Map<number, string[]>();
+
+  itinerary.forEach((item) => {
+    if (item.day < 1 || item.day > input.days) {
+      return;
+    }
+
+    const cleanedActivities = item.activities
+      .map((activity) => activity.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    if (cleanedActivities.length > 0) {
+      byDay.set(item.day, cleanedActivities);
+    }
+  });
+
+  const defaultPlan = createFallbackItinerary(input.days, input.destination, input.interests);
+  const normalized: ItineraryItem[] = [];
+  const usedSignatures = new Set<string>();
+
+  for (let day = 1; day <= input.days; day += 1) {
+    const aiActivities = byDay.get(day) ?? defaultPlan[day - 1].activities;
+    const normalizedActivities = aiActivities.map((value) => value.trim()).filter(Boolean);
+
+    const signature = normalizedActivities.join("|").toLowerCase();
+    if (usedSignatures.has(signature)) {
+      normalized.push(defaultPlan[day - 1]);
+    } else {
+      usedSignatures.add(signature);
+      normalized.push({
+        day,
+        activities: normalizedActivities.length > 0 ? normalizedActivities : defaultPlan[day - 1].activities,
+      });
+    }
+  }
+
+  return normalized;
+};
+
 const parseEstimatedCost = (value: unknown): EstimatedCost => {
   if (!isRecord(value)) {
     return { flights: 0, accommodation: 0, food: 0, activities: 0, total: 0 };
@@ -153,12 +183,12 @@ const parseHotels = (value: unknown): HotelSuggestion[] => {
     .filter((hotel): hotel is HotelSuggestion => hotel !== null);
 };
 
-const parseTripPlan = (payload: unknown): TripPlanResult | null => {
+const parseTripPlan = (payload: unknown, input: GenerateTripPlanInput): TripPlanResult | null => {
   if (!isRecord(payload)) {
     return null;
   }
 
-  const itinerary = parseItinerary(payload.itinerary);
+  const itinerary = normalizeItinerary(parseItinerary(payload.itinerary), input);
   const budget = parseEstimatedCost(payload.budget);
   const hotels = parseHotels(payload.hotels);
 
@@ -183,7 +213,7 @@ const parseRegeneratedActivities = (payload: unknown): string[] | null => {
 };
 
 const buildCacheKey = (input: GenerateTripPlanInput): string => {
-  const raw = `${input.destination.toLowerCase()}|${input.days}|${input.budgetType}|${input.interests
+  const raw = `${AI_CACHE_VERSION}|${input.destination.toLowerCase()}|${input.days}|${input.budgetType}|${input.interests
     .map((value) => value.toLowerCase())
     .sort()
     .join(",")}`;
@@ -228,7 +258,7 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
 
   const cached = await AICacheModel.findOne({ key }).lean();
   if (cached && typeof cached.response === "object" && cached.response !== null) {
-    const parsedCached = parseTripPlan(cached.response);
+    const parsedCached = parseTripPlan(cached.response, input);
     if (parsedCached) {
       return parsedCached;
     }
@@ -239,6 +269,9 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
       "Generate a travel plan in JSON only. No markdown. No extra text.",
       "Use this exact schema:",
       '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0},"hotels":[{"name":"","type":"budget","description":""}]}',
+      "Create exactly one itinerary item per day from day 1 to the requested number of days.",
+      "Every day must have distinct activities. Do not repeat the same activities across days.",
+      "Reflect interests in different ways across different days.",
       `destination=${input.destination}`,
       `days=${input.days}`,
       `budget=${input.budgetType}`,
@@ -251,7 +284,7 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
         continue;
       }
       const parsedJson = parseJsonPayload(raw);
-      const parsedPlan = parseTripPlan(parsedJson);
+      const parsedPlan = parseTripPlan(parsedJson, input);
       if (!parsedPlan) {
         continue;
       }
@@ -269,19 +302,10 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
   return fallback;
 };
 
-const fallbackRegeneratedActivities = (input: RegenerateDayInput): string[] => {
-  const preferenceText = input.preferences?.trim() ? ` with ${input.preferences.trim()}` : "";
-  return [
-    `Morning exploration in ${input.destination}${preferenceText}`,
-    `Local experience focused on day ${input.day}`,
-    `Evening activity and dining in ${input.destination}`,
-  ];
-};
-
 const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
   const apiKey = env.geminiApiKey;
   if (!apiKey) {
-    return fallbackRegeneratedActivities(input);
+    return createFallbackRegeneratedActivities(input.destination, input.day, input.preferences);
   }
 
   const prompt = [
@@ -296,14 +320,14 @@ const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
   try {
     const content = await callGemini(prompt);
     if (!content || !content.trim()) {
-      return fallbackRegeneratedActivities(input);
+      return createFallbackRegeneratedActivities(input.destination, input.day, input.preferences);
     }
 
     const parsed = parseJsonPayload(content);
     const activities = parseRegeneratedActivities(parsed);
-    return activities ?? fallbackRegeneratedActivities(input);
+    return activities ?? createFallbackRegeneratedActivities(input.destination, input.day, input.preferences);
   } catch {
-    return fallbackRegeneratedActivities(input);
+    return createFallbackRegeneratedActivities(input.destination, input.day, input.preferences);
   }
 };
 

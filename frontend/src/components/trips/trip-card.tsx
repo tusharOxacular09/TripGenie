@@ -28,8 +28,8 @@ export function TripCard({ trip }: Props) {
   const moreInterests = Math.max(trip.interests.length - shownInterests.length, 0);
 
   return (
-    <Link href={`/trips/${trip._id}`} className="group block">
-      <article className="shadow-card rounded-2xl border border-transparent bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-lg sm:p-6">
+    <Link href={`/trips/${trip._id}`} className="group block h-full">
+      <article className="shadow-card flex h-full flex-col rounded-2xl border border-transparent bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-lg sm:p-6">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -59,7 +59,7 @@ export function TripCard({ trip }: Props) {
         </div>
 
         {shownInterests.length > 0 ? (
-          <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          <div className="mb-4 min-h-8 flex flex-wrap items-center gap-1.5">
             {shownInterests.map((interest) => (
               <span key={interest} className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs capitalize text-indigo-700">
                 {interest}
@@ -69,9 +69,11 @@ export function TripCard({ trip }: Props) {
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">+{moreInterests} more</span>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          <div className="mb-4 min-h-8" />
+        )}
 
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
             {budgetLabels[trip.budgetType]}
           </span>

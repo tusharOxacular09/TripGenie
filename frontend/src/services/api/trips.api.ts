@@ -1,4 +1,6 @@
+import { AxiosError } from "axios";
 import { Trip } from "../../types/api";
+import { HttpError } from "../../shared/http-error";
 import { apiClient } from "./client";
 
 type Envelope<T> = {
@@ -39,10 +41,23 @@ export const tripsApi = {
     return response.data.data.trip;
   },
   regenerateDay: async (tripId: string, day: number, preferences: string) => {
-    const response = await apiClient.patch<Envelope<{ trip: Trip }>>(`/trips/${tripId}/regenerate-day`, {
-      day,
-      preferences,
-    });
-    return response.data.data.trip;
+    try {
+      const response = await apiClient.patch<Envelope<{ trip: Trip }>>(
+        `/trips/${tripId}/regenerate-day`,
+        {
+          day,
+          preferences,
+        },
+        {
+          timeout: 70000,
+        }
+      );
+      return response.data.data.trip;
+    } catch (error) {
+      if (error instanceof AxiosError && error.code === "ECONNABORTED") {
+        throw new HttpError("AI regeneration is taking longer than expected. Please try again in a few seconds.", 408);
+      }
+      throw error;
+    }
   },
 };

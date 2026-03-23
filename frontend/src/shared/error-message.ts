@@ -7,6 +7,9 @@ export const getErrorMessage = (error: unknown, fallback: string): string => {
     return error.message;
   }
   if (error instanceof AxiosError) {
+    if (error.code === "ECONNABORTED") {
+      return "The request timed out while waiting for AI. Please try again.";
+    }
     const message = error.response?.data as { message?: string } | undefined;
     if (message?.message) {
       return message.message;
