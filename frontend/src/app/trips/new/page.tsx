@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Calendar, Heart, Loader2, MapPin, Sparkles } from "lucide-react";
 import { AppShell } from "../../../components/app-shell";
 import { ProtectedPage } from "../../../components/protected-page";
+import { AIGenerationOverlay } from "../../../features/trips/components/ai-generation-overlay";
 import { tripValidators } from "../../../features/trips/trip.validators";
 import { getErrorMessage } from "../../../shared/error-message";
 import { tripsApi } from "../../../services/api/trips.api";
@@ -40,6 +41,22 @@ export default function CreateTripPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [generationStep, setGenerationStep] = useState(0);
+
+  useEffect(() => {
+    if (!loading) {
+      setGenerationStep(0);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setGenerationStep((prev) => (prev < 4 ? prev + 1 : prev));
+    }, 1500);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loading]);
 
   const toggleInterest = (value: string) => {
     setInterests((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
@@ -86,6 +103,7 @@ export default function CreateTripPage() {
   return (
     <ProtectedPage>
       <AppShell>
+        <AIGenerationOverlay open={loading} destination={destination} stepIndex={generationStep} />
         <div className="mx-auto max-w-4xl space-y-6">
           <div>
             <h1 className="font-display text-3xl font-bold text-slate-900">Plan a New Trip</h1>
