@@ -1,6 +1,13 @@
 import { Router } from "express";
 
-import { createTrip, getTripById, getTrips } from "../controllers/trip.controller";
+import {
+  addActivity,
+  createTrip,
+  getTripById,
+  getTrips,
+  regenerateDay,
+  removeActivity,
+} from "../controllers/trip.controller";
 import { authenticate } from "../middleware/auth.middleware";
 
 const tripRouter = Router();
@@ -9,6 +16,9 @@ tripRouter.use(authenticate);
 
 tripRouter.get("/", getTrips);
 tripRouter.post("/", createTrip);
-tripRouter.get("/:tripId", getTripById);
+tripRouter.get("/:id", getTripById);
+tripRouter.patch("/:id/add-activity", addActivity);
+tripRouter.patch("/:id/remove-activity", removeActivity);
+tripRouter.patch("/:id/regenerate-day", regenerateDay);
 
 export { tripRouter };
