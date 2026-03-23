@@ -2,23 +2,32 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { AuthLayout } from "../../components/auth-layout";
 import { registerFlow } from "../../features/auth/auth.thunks";
 import { authValidators } from "../../features/auth/auth.validators";
+import { authStorage } from "../../lib/auth";
 import { getErrorMessage } from "../../shared/error-message";
-import { useAppDispatch } from "../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 
 export default function RegisterPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const hasRefreshToken = Boolean(authStorage.getRefreshToken());
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated || hasRefreshToken) {
+      router.replace("/dashboard");
+    }
+  }, [router, isAuthenticated, hasRefreshToken]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();

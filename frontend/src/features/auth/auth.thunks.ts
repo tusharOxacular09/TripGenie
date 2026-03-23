@@ -1,5 +1,6 @@
 import { authApi } from "../../services/api/auth.api";
 import { authStorage } from "../../lib/auth";
+import { requestAccessTokenRefresh } from "../../services/api/client";
 import { AppDispatch } from "../../store";
 import { logout, setCredentials, setUser } from "../../store/auth.slice";
 
@@ -26,7 +27,7 @@ export const bootstrapAuth = () => async (dispatch: AppDispatch): Promise<void> 
     return;
   }
   try {
-    const accessToken = await authApi.refresh(refreshToken);
+    const accessToken = await requestAccessTokenRefresh();
     dispatch(setCredentials({ accessToken, user: null }));
     const user = await authApi.me();
     dispatch(setUser(user));

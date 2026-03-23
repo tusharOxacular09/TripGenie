@@ -11,20 +11,60 @@ const apiClient = axios.create({
   timeout: 20000,
 });
 
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+const isPublicAuthRoute = (url?: string): boolean => {
+  if (!url) {
+    return false;
+  }
+  return url.includes("/auth/login") || url.includes("/auth/register") || url.includes("/auth/refresh");
+};
+
+apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   const token = store.getState().auth.accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    return config;
   }
+
+  const refreshToken = authStorage.getRefreshToken();
+  if (refreshToken && !isPublicAuthRoute(config.url)) {
+    const refreshedToken = await requestAccessTokenRefresh();
+    config.headers.Authorization = `Bearer ${refreshedToken}`;
+  }
+
   return config;
 });
 
-let refreshing = false;
-let queue: Array<(token: string) => void> = [];
+let refreshPromise: Promise<string> | null = null;
 
-const processQueue = (token: string) => {
-  queue.forEach((resolve) => resolve(token));
-  queue = [];
+const requestAccessTokenRefresh = async (): Promise<string> => {
+  const refreshToken = authStorage.getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("Refresh token missing");
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE}/api/auth/refresh`, { refreshToken })
+      .then((response) => {
+        const accessToken = response.data?.data?.accessToken;
+        if (typeof accessToken !== "string" || !accessToken) {
+          throw new Error("Invalid refresh response");
+        }
+        const currentUser = store.getState().auth.user;
+        store.dispatch(setCredentials({ accessToken, user: currentUser }));
+        return accessToken;
+      })
+      .catch((error) => {
+        store.dispatch(logout());
+        authStorage.clearRefreshToken();
+        throw error;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
 };
 
 apiClient.interceptors.response.use(
@@ -35,39 +75,20 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const refreshToken = authStorage.getRefreshToken();
-    if (!refreshToken) {
+    if (!authStorage.getRefreshToken()) {
       store.dispatch(logout());
       return Promise.reject(error);
     }
 
-    if (refreshing) {
-      return new Promise((resolve) => {
-        queue.push((newToken: string) => {
-          original.headers.Authorization = `Bearer ${newToken}`;
-          resolve(apiClient(original));
-        });
-      });
-    }
-
-    refreshing = true;
     original._retry = true;
     try {
-      const response = await axios.post(`${API_BASE}/api/auth/refresh`, { refreshToken });
-      const accessToken = response.data?.data?.accessToken as string;
-      const currentUser = store.getState().auth.user;
-      store.dispatch(setCredentials({ accessToken, user: currentUser }));
-      processQueue(accessToken);
+      const accessToken = await requestAccessTokenRefresh();
       original.headers.Authorization = `Bearer ${accessToken}`;
       return apiClient(original);
-    } catch (refreshError) {
-      store.dispatch(logout());
-      authStorage.clearRefreshToken();
-      return Promise.reject(refreshError);
-    } finally {
-      refreshing = false;
+    } catch {
+      return Promise.reject(error);
     }
   }
 );
 
-export { apiClient };
+export { apiClient, requestAccessTokenRefresh };
