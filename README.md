@@ -14,16 +14,16 @@ It is built with secure JWT authentication, strict multi-user data isolation, re
 
 ## Demo Video (YouTube)
 
-- [Watch on YouTube](https://www.youtube.com/watch?v=_nLnKHRtUU4)
+- [Watch on YouTube](https://www.youtube.com/watch?v=29FUxIzZ4UA)
 
 ### Video Preview
 
-[![TripGenie Walkthrough Thumbnail](https://img.youtube.com/vi/_nLnKHRtUU4/maxresdefault.jpg)](https://www.youtube.com/watch?v=_nLnKHRtUU4)
+[![TripGenie Walkthrough Thumbnail](https://img.youtube.com/vi/29FUxIzZ4UA/maxresdefault.jpg)](https://www.youtube.com/watch?v=29FUxIzZ4UA)
 
 <iframe
   width="100%"
   height="420"
-  src="https://www.youtube.com/embed/_nLnKHRtUU4"
+  src="https://www.youtube.com/embed/29FUxIzZ4UA"
   title="TripGenie Application Walkthrough"
   frameborder="0"
   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -37,6 +37,12 @@ It is built with secure JWT authentication, strict multi-user data isolation, re
 
 - Frontend: [https://tripgenie.enrolbee.com](https://tripgenie.enrolbee.com)
 - Backend API: [https://api.tripgenie.enrolbee.com](https://api.tripgenie.enrolbee.com)
+
+---
+
+## GitHub Repository
+
+- Repository: [https://github.com/tusharOxacular09/TripGenie](https://github.com/tusharOxacular09/TripGenie)
 
 ---
 
