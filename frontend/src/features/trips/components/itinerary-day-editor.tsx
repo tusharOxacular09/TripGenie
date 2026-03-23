@@ -20,7 +20,7 @@ export function ItineraryDayEditor({ dayPlan, destination, onAdd, onRemove, onRe
   const [regenerating, setRegenerating] = useState(false);
   const [regenProgress, setRegenProgress] = useState(0);
   const [regenSuccess, setRegenSuccess] = useState(false);
-  const progressTimer = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const progressTimer = useRef<number | null>(null);
 
   const withBusy = async (action: () => Promise<void>) => {
     setBusy(true);
