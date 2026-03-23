@@ -11,7 +11,13 @@ type Envelope<T> = {
 };
 
 export const tripsApi = {
-  createTrip: async (payload: { destination: string; days: number; budgetType: "low" | "medium" | "high"; interests: string[] }) => {
+  createTrip: async (payload: {
+    pickupPoint: string;
+    destination: string;
+    days: number;
+    budgetType: "low" | "medium" | "high";
+    interests: string[];
+  }) => {
     const response = await apiClient.post<Envelope<{ trip: Trip }>>("/trips", payload);
     return response.data.data.trip;
   },

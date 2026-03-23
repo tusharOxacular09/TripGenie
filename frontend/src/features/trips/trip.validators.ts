@@ -4,7 +4,10 @@ import { BudgetType } from "../../types/api";
 const BUDGET_TYPES: BudgetType[] = ["low", "medium", "high"];
 
 export const tripValidators = {
-  validateCreateTripInput: (destination: string, days: number, budgetType: BudgetType): void => {
+  validateCreateTripInput: (pickupPoint: string, destination: string, days: number, budgetType: BudgetType): void => {
+    if (!pickupPoint.trim()) {
+      throw new HttpError("Pickup point is required", 400);
+    }
     if (!destination.trim()) {
       throw new HttpError("Destination is required", 400);
     }

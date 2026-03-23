@@ -36,7 +36,7 @@ export function TripCard({ trip }: Props) {
               <MapPin className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-display truncate text-2xl font-semibold text-slate-900 transition-colors group-hover:text-indigo-600">
+              <h3 className="font-display truncate text-xl font-semibold text-slate-900 transition-colors group-hover:text-indigo-600 sm:text-2xl">
                 {trip.destination}
               </h3>
               <p className="mt-0.5 text-xs text-slate-500">AI-crafted personalized itinerary</p>

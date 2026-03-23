@@ -35,6 +35,7 @@ const INTERESTS = [
 
 export default function CreateTripPage() {
   const router = useRouter();
+  const [pickupPoint, setPickupPoint] = useState("");
   const [destination, setDestination] = useState("");
   const [days, setDays] = useState("");
   const [budgetType, setBudgetType] = useState<BudgetType>("medium");
@@ -65,6 +66,9 @@ export default function CreateTripPage() {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
+    if (!pickupPoint.trim()) {
+      errors.pickupPoint = "Pickup point is required";
+    }
     if (!destination.trim()) {
       errors.destination = "Destination is required";
     }
@@ -91,8 +95,8 @@ export default function CreateTripPage() {
     setLoading(true);
     try {
       const parsedDays = Number(days);
-      tripValidators.validateCreateTripInput(destination, parsedDays, budgetType);
-      const result = await tripsApi.createTrip({ destination, days: parsedDays, budgetType, interests });
+      tripValidators.validateCreateTripInput(pickupPoint, destination, parsedDays, budgetType);
+      const result = await tripsApi.createTrip({ pickupPoint, destination, days: parsedDays, budgetType, interests });
       router.push(`/trips/${result._id}`);
     } catch (err) {
       setError(getErrorMessage(err, "Failed to create trip"));
@@ -128,6 +132,22 @@ export default function CreateTripPage() {
           <div className="grid gap-8 lg:grid-cols-5">
             <form onSubmit={onSubmit} className="lg:col-span-3 space-y-6">
               <div className="shadow-card rounded-2xl border border-slate-200 bg-white p-6 space-y-5">
+                <div className="space-y-2">
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Pickup point</label>
+                  <div className="relative">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      required
+                      placeholder="e.g., Delhi, India"
+                      value={pickupPoint}
+                      onChange={(e) => setPickupPoint(e.target.value)}
+                      className={`w-full rounded-xl border bg-white py-2 pr-3 pl-9 outline-none ring-indigo-500 focus:ring-2 ${
+                        fieldErrors.pickupPoint ? "border-red-300" : "border-slate-300"
+                      }`}
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Destination</label>
                   <div className="relative">
@@ -232,6 +252,10 @@ export default function CreateTripPage() {
               <div className="shadow-card sticky top-24 rounded-2xl border border-slate-200 bg-white p-6">
                 <h3 className="font-display text-lg font-semibold text-slate-900">Trip Preview</h3>
                 <div className="mt-4 space-y-4 text-sm">
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-400">Pickup point</p>
+                    <p className="mt-1 font-medium text-slate-800">{pickupPoint || "—"}</p>
+                  </div>
                   <div>
                     <p className="text-xs uppercase tracking-wider text-slate-400">Destination</p>
                     <p className="mt-1 font-medium text-slate-800">{destination || "—"}</p>

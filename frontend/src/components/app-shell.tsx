@@ -23,39 +23,43 @@ export function AppShell({ children }: Props) {
   };
 
   const navLinkClass = (path: string) =>
-    `rounded-lg px-3 py-2 text-sm ${pathname === path ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`;
+    `whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm ${
+      pathname === path ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+    }`;
 
   return (
     <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
               <Plane className="h-5 w-5 text-white" aria-hidden="true" />
             </span>
             <span className="font-display text-lg font-bold text-slate-900">TripGenie</span>
           </Link>
-          <nav aria-label="Primary navigation" className="flex items-center gap-2">
-            <Link href="/dashboard" className={navLinkClass("/dashboard")}>
-              Dashboard
-            </Link>
-            <Link href="/trips/new" className={navLinkClass("/trips/new")}>
-              Create Trip
-            </Link>
-            <Link href="/profile" className={navLinkClass("/profile")}>
-              Profile
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800"
-            >
-              Logout
-            </button>
-          </nav>
+          <div className="w-full overflow-x-auto sm:w-auto">
+            <nav aria-label="Primary navigation" className="flex min-w-max items-center gap-2">
+              <Link href="/dashboard" className={navLinkClass("/dashboard")}>
+                Dashboard
+              </Link>
+              <Link href="/trips/new" className={navLinkClass("/trips/new")}>
+                Create Trip
+              </Link>
+              <Link href="/profile" className={navLinkClass("/profile")}>
+                Profile
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs text-white hover:bg-slate-800 sm:px-3 sm:py-2 sm:text-sm"
+              >
+                Logout
+              </button>
+            </nav>
+          </div>
         </div>
       </header>
-      <main id="main-content" className="mx-auto max-w-6xl px-4 py-8">
+      <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
         {children}
       </main>
     </div>

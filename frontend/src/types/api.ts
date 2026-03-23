@@ -36,6 +36,7 @@ export type HotelSuggestion = {
 export type Trip = {
   _id: string;
   userId: string;
+  pickupPoint: string;
   destination: string;
   days: number;
   budgetType: BudgetType;

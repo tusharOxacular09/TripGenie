@@ -7,6 +7,7 @@ import { BudgetType, EstimatedCost, HotelSuggestion, ItineraryItem } from "../mo
 import { createFallbackItinerary, createFallbackRegeneratedActivities } from "./ai-fallback.service";
 
 type GenerateTripPlanInput = {
+  pickupPoint: string;
   destination: string;
   days: number;
   budgetType: BudgetType;
@@ -39,7 +40,7 @@ const toNumber = (value: unknown): number => {
   return 0;
 };
 
-const defaultEstimatedCost = (days: number, budgetType: BudgetType): EstimatedCost => {
+const defaultEstimatedCost = (days: number, budgetType: BudgetType, pickupPoint: string, destination: string): EstimatedCost => {
   const multipliers: Record<BudgetType, number> = {
     low: 1,
     medium: 1.7,
@@ -47,7 +48,12 @@ const defaultEstimatedCost = (days: number, budgetType: BudgetType): EstimatedCo
   };
   const basePerDay = 90;
   const daily = basePerDay * multipliers[budgetType];
-  const flights = Math.round(220 * multipliers[budgetType]);
+  const pickup = pickupPoint.trim().toLowerCase();
+  const dest = destination.trim().toLowerCase();
+  const sameCity = pickup === dest;
+  const oneIncludesOther = pickup.includes(dest) || dest.includes(pickup);
+  const flightBase = sameCity ? 40 : oneIncludesOther ? 140 : 260;
+  const flights = Math.round(flightBase * multipliers[budgetType]);
   const accommodation = Math.round(days * daily * 0.45);
   const food = Math.round(days * daily * 0.3);
   const activities = Math.round(days * daily * 0.25);
@@ -93,7 +99,7 @@ const destinationKey = (destination: string): string => destination.trim().toLow
 
 const fallbackTripPlan = (input: GenerateTripPlanInput): TripPlanResult => ({
   itinerary: createFallbackItinerary(input.days, input.destination, input.interests),
-  budget: defaultEstimatedCost(input.days, input.budgetType),
+  budget: defaultEstimatedCost(input.days, input.budgetType, input.pickupPoint, input.destination),
   hotels: defaultHotels(input.destination),
 });
 
@@ -291,7 +297,7 @@ const parseRegeneratedActivities = (payload: unknown): string[] | null => {
 };
 
 const buildCacheKey = (input: GenerateTripPlanInput): string => {
-  const raw = `${AI_CACHE_VERSION}|${input.destination.toLowerCase()}|${input.days}|${input.budgetType}|${input.interests
+  const raw = `${AI_CACHE_VERSION}|${input.pickupPoint.toLowerCase()}|${input.destination.toLowerCase()}|${input.days}|${input.budgetType}|${input.interests
     .map((value) => value.toLowerCase())
     .sort()
     .join(",")}`;
@@ -347,6 +353,7 @@ const getOrCreateHotelsForDestination = async (input: GenerateTripPlanInput): Pr
     "You are an AI travel assistant.",
     "Recommend hotels in STRICT JSON only with no markdown and no extra text.",
     "Input:",
+    `Pickup Point: ${input.pickupPoint}`,
     `Destination: ${input.destination}`,
     `Budget: ${input.budgetType}`,
     `Trip Duration: ${input.days} days`,
@@ -411,6 +418,9 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
       "Each activity should be descriptive and practical, around 12 to 24 words, not short phrases.",
       "Include a mix of morning, afternoon, and evening style recommendations.",
       "Mention specific local experiences/areas where possible instead of generic lines.",
+      "Use pickup point and destination context to make flight estimate realistic.",
+      "If pickup point and destination are close/same, keep flights lower than long-distance trips.",
+      `pickup_point=${input.pickupPoint}`,
       `destination=${input.destination}`,
       `days=${input.days}`,
       `budget=${input.budgetType}`,

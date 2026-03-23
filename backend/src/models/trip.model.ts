@@ -35,6 +35,7 @@ export interface HotelSuggestion {
 
 export interface Trip {
   userId: Types.ObjectId;
+  pickupPoint: string;
   destination: string;
   days: number;
   budgetType: BudgetType;
@@ -84,6 +85,7 @@ const hotelSuggestionSchema = new Schema<HotelSuggestion>(
 const tripSchema = new Schema<Trip, TripModel>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    pickupPoint: { type: String, required: true, trim: true },
     destination: { type: String, required: true, trim: true },
     days: { type: Number, required: true, min: 1 },
     budgetType: { type: String, enum: budgetTypes, required: true },

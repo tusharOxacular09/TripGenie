@@ -129,6 +129,9 @@ export default function TripDetailsPage() {
                       <h1 className="font-display text-3xl font-bold text-slate-900">{trip.destination}</h1>
                       <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
                         <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" /> From {trip.pickupPoint}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" /> {trip.days} days
                         </span>
                         <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${budget.badgeClassName}`}>

@@ -114,13 +114,13 @@ export function ItineraryDayEditor({ dayPlan, destination, onAdd, onRemove, onRe
               <li key={activity} className="group flex items-center justify-between gap-3 rounded-xl bg-slate-100/70 p-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600" />
-                  <span className="truncate text-sm text-slate-800">{activity}</span>
+                  <span className="text-sm leading-5 text-slate-800 break-words">{activity}</span>
                 </div>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => withBusy(() => onRemove(dayPlan.day, activity))}
-                  className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
+                  className="rounded p-1 text-slate-400 opacity-100 transition-colors hover:text-red-500 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 disabled:opacity-40"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

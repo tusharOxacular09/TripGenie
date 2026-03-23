@@ -5,6 +5,7 @@ import { BudgetType, TripModel } from "../models/trip.model";
 import { aiService } from "./ai.service";
 
 type CreateTripInput = {
+  pickupPoint: string;
   destination: string;
   days: number;
   budgetType: BudgetType;
@@ -21,6 +22,7 @@ const parseCreateInput = (payload: unknown): CreateTripInput => {
     throw new HttpError("Invalid request payload", 400);
   }
 
+  const pickupPoint = typeof payload.pickupPoint === "string" ? payload.pickupPoint.trim() : "";
   const destination = typeof payload.destination === "string" ? payload.destination.trim() : "";
   const days = typeof payload.days === "number" ? payload.days : Number.NaN;
   const budgetTypeRaw = typeof payload.budgetType === "string" ? payload.budgetType.toLowerCase() : "";
@@ -33,6 +35,9 @@ const parseCreateInput = (payload: unknown): CreateTripInput => {
         .filter(Boolean)
     : [];
 
+  if (!pickupPoint) {
+    throw new HttpError("Pickup point is required", 400);
+  }
   if (!destination) {
     throw new HttpError("Destination is required", 400);
   }
@@ -44,6 +49,7 @@ const parseCreateInput = (payload: unknown): CreateTripInput => {
   }
 
   return {
+    pickupPoint,
     destination,
     days,
     budgetType: budgetTypeRaw as BudgetType,
@@ -112,6 +118,7 @@ const createTrip = async (userId: string, payload: unknown) => {
 
   const trip = await TripModel.create({
     userId: parsedUserId,
+    pickupPoint: input.pickupPoint,
     destination: input.destination,
     days: input.days,
     budgetType: input.budgetType,
