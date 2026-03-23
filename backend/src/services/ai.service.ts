@@ -27,7 +27,7 @@ type RegenerateDayInput = {
 };
 
 const HOTEL_TYPES: HotelSuggestion["type"][] = ["budget", "mid", "luxury"];
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 const AI_CACHE_VERSION = "v3";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -307,6 +307,7 @@ const buildCacheKey = (input: GenerateTripPlanInput): string => {
 const callGemini = async (prompt: string): Promise<string | null> => {
   const apiKey = env.geminiApiKey;
   if (!apiKey) {
+    console.warn("[AI Service] No Gemini API key configured");
     return null;
   }
 
@@ -319,12 +320,13 @@ const callGemini = async (prompt: string): Promise<string | null> => {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.2,
-        responseMimeType: "application/json",
       },
     }),
   });
 
   if (!response.ok) {
+    const errorBody = await response.text();
+    console.error(`[AI Service] Gemini API error ${response.status}:`, errorBody);
     return null;
   }
 
