@@ -6,15 +6,16 @@ import { Calendar, Heart, Loader2, MapPin, Sparkles } from "lucide-react";
 import { AppShell } from "../../../components/app-shell";
 import { ProtectedPage } from "../../../components/protected-page";
 import { AIGenerationOverlay } from "../../../features/trips/components/ai-generation-overlay";
+import { budgetMeta } from "../../../features/trips/budget-meta";
 import { tripValidators } from "../../../features/trips/trip.validators";
 import { getErrorMessage } from "../../../shared/error-message";
 import { tripsApi } from "../../../services/api/trips.api";
 import { BudgetType } from "../../../types/api";
 
 const BUDGET_OPTIONS: Array<{ value: BudgetType; label: string; icon: string }> = [
-  { value: "low", label: "Budget", icon: "💰" },
-  { value: "medium", label: "Standard", icon: "💎" },
-  { value: "high", label: "Premium", icon: "👑" },
+  { value: "low", label: budgetMeta.low.label, icon: budgetMeta.low.icon },
+  { value: "medium", label: budgetMeta.medium.label, icon: budgetMeta.medium.icon },
+  { value: "high", label: budgetMeta.high.label, icon: budgetMeta.high.icon },
 ];
 
 const INTERESTS = [

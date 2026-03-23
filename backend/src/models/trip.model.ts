@@ -25,6 +25,12 @@ export interface HotelSuggestion {
   name: string;
   type: HotelType;
   description?: string;
+  pricePerNight?: string;
+  location?: string;
+  rating?: number;
+  imageQuery?: string;
+  features?: string[];
+  reason?: string;
 }
 
 export interface Trip {
@@ -65,6 +71,12 @@ const hotelSuggestionSchema = new Schema<HotelSuggestion>(
     name: { type: String, trim: true },
     type: { type: String, enum: hotelTypes },
     description: { type: String, trim: true },
+    pricePerNight: { type: String, trim: true },
+    location: { type: String, trim: true },
+    rating: { type: Number, min: 0, max: 5 },
+    imageQuery: { type: String, trim: true },
+    features: { type: [String], default: [] },
+    reason: { type: String, trim: true },
   },
   { _id: false, strict: true }
 );

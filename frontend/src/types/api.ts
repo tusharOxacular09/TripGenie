@@ -25,6 +25,12 @@ export type HotelSuggestion = {
   name: string;
   type: HotelType;
   description?: string;
+  pricePerNight?: string;
+  location?: string;
+  rating?: number;
+  imageQuery?: string;
+  features?: string[];
+  reason?: string;
 };
 
 export type Trip = {

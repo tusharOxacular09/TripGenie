@@ -16,7 +16,7 @@ export function RegenerateDayModal({ open, day, destination, progress, success }
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-80 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
       <section
         role="status"
         aria-live="polite"

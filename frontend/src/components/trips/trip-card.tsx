@@ -1,15 +1,10 @@
 import Link from "next/link";
 import { Calendar, Clock, DollarSign, MapPin } from "lucide-react";
+import { budgetMeta } from "../../features/trips/budget-meta";
 import { Trip } from "../../types/api";
 
 type Props = {
   trip: Trip;
-};
-
-const budgetLabels: Record<string, string> = {
-  low: "Budget",
-  medium: "Standard",
-  high: "Premium",
 };
 
 const statusColors: Record<string, string> = {
@@ -26,6 +21,7 @@ const formatDate = (value: string): string => {
 export function TripCard({ trip }: Props) {
   const shownInterests = trip.interests.slice(0, 3);
   const moreInterests = Math.max(trip.interests.length - shownInterests.length, 0);
+  const budget = budgetMeta[trip.budgetType];
 
   return (
     <Link href={`/trips/${trip._id}`} className="group block h-full">
@@ -74,8 +70,9 @@ export function TripCard({ trip }: Props) {
         )}
 
         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-            {budgetLabels[trip.budgetType]}
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${budget.badgeClassName}`}>
+            <span aria-hidden="true">{budget.icon}</span>
+            {budget.label}
           </span>
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <Clock className="h-3 w-3" />

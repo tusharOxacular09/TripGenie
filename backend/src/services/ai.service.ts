@@ -56,9 +56,36 @@ const defaultEstimatedCost = (days: number, budgetType: BudgetType): EstimatedCo
 };
 
 const defaultHotels = (destination: string): HotelSuggestion[] => [
-  { name: `${destination} Budget Stay`, type: "budget" },
-  { name: `${destination} City Comfort Hotel`, type: "mid" },
-  { name: `${destination} Grand Palace Hotel`, type: "luxury" },
+  {
+    name: `${destination} Budget Stay`,
+    type: "budget",
+    pricePerNight: "$35-$60",
+    location: "City center",
+    rating: 4.1,
+    imageQuery: `${destination} budget hotel exterior`,
+    features: ["Clean rooms", "Central location", "Free Wi-Fi"],
+    reason: "Affordable stay with convenient access to key attractions.",
+  },
+  {
+    name: `${destination} City Comfort Hotel`,
+    type: "mid",
+    pricePerNight: "$80-$140",
+    location: "Prime district",
+    rating: 4.3,
+    imageQuery: `${destination} mid range hotel exterior`,
+    features: ["Comfortable rooms", "Great location", "Breakfast included"],
+    reason: "Balanced value and comfort for most travelers.",
+  },
+  {
+    name: `${destination} Grand Palace Hotel`,
+    type: "luxury",
+    pricePerNight: "$220-$420",
+    location: "Premium locality",
+    rating: 4.6,
+    imageQuery: `${destination} luxury hotel exterior`,
+    features: ["Premium amenities", "Top-rated service", "Scenic views"],
+    reason: "Luxury experience with premium facilities and location.",
+  },
 ];
 
 const fallbackTripPlan = (input: GenerateTripPlanInput): TripPlanResult => ({
@@ -165,20 +192,53 @@ const parseHotels = (value: unknown): HotelSuggestion[] => {
     return [];
   }
 
+  const categoryToType: Record<string, HotelSuggestion["type"]> = {
+    budget: "budget",
+    "mid-range": "mid",
+    mid: "mid",
+    luxury: "luxury",
+  };
+
   return value
-    .map((hotel) => {
-      if (!isRecord(hotel) || typeof hotel.name !== "string" || typeof hotel.type !== "string") {
+    .map((hotel): HotelSuggestion | null => {
+      if (!isRecord(hotel) || typeof hotel.name !== "string") {
         return null;
       }
-      const type = hotel.type.trim().toLowerCase();
-      if (!HOTEL_TYPES.includes(type as HotelSuggestion["type"])) {
+      const typeSource = typeof hotel.type === "string" ? hotel.type : typeof hotel.category === "string" ? hotel.category : "";
+      const type = categoryToType[typeSource.trim().toLowerCase()];
+      if (!type || !HOTEL_TYPES.includes(type)) {
         return null;
       }
       const name = hotel.name.trim();
       if (!name) {
         return null;
       }
-      return { name, type: type as HotelSuggestion["type"] };
+
+      const ratingValue = typeof hotel.rating === "number" && Number.isFinite(hotel.rating) ? hotel.rating : undefined;
+      const rating = typeof ratingValue === "number" ? Math.max(0, Math.min(5, ratingValue)) : undefined;
+      const location = typeof hotel.location === "string" ? hotel.location.trim() : undefined;
+      const pricePerNight = typeof hotel.price_per_night === "string" ? hotel.price_per_night.trim() : undefined;
+      const imageQuery = typeof hotel.image_query === "string" ? hotel.image_query.trim() : undefined;
+      const reason = typeof hotel.reason === "string" ? hotel.reason.trim() : undefined;
+      const features = Array.isArray(hotel.features)
+        ? hotel.features
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .slice(0, 3)
+        : undefined;
+
+      return {
+        name,
+        type,
+        description: reason,
+        pricePerNight: pricePerNight || undefined,
+        location: location || undefined,
+        rating,
+        imageQuery: imageQuery || undefined,
+        features,
+        reason: reason || undefined,
+      };
     })
     .filter((hotel): hotel is HotelSuggestion => hotel !== null);
 };
@@ -190,7 +250,7 @@ const parseTripPlan = (payload: unknown, input: GenerateTripPlanInput): TripPlan
 
   const itinerary = normalizeItinerary(parseItinerary(payload.itinerary), input);
   const budget = parseEstimatedCost(payload.budget);
-  const hotels = parseHotels(payload.hotels);
+  const hotels = parseHotels(payload.hotels ?? payload.recommended_hotels);
 
   if (itinerary.length === 0) {
     return null;
@@ -268,10 +328,13 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
     const prompt = [
       "Generate a travel plan in JSON only. No markdown. No extra text.",
       "Use this exact schema:",
-      '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0},"hotels":[{"name":"","type":"budget","description":""}]}',
+      '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0},"recommended_hotels":[{"name":"","category":"Budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
       "Create exactly one itinerary item per day from day 1 to the requested number of days.",
       "Every day must have distinct activities. Do not repeat the same activities across days.",
       "Reflect interests in different ways across different days.",
+      "For hotels, recommend exactly 3 real and well-known hotels: one Budget, one Mid-range, one Luxury.",
+      "Hotels must be in the destination (or nearest relevant area), realistic, and preferably rating >= 4.0.",
+      "Do not generate image URLs. Provide image_query only.",
       `destination=${input.destination}`,
       `days=${input.days}`,
       `budget=${input.budgetType}`,
