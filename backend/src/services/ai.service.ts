@@ -2,6 +2,7 @@ import crypto from "crypto";
 
 import { env } from "../config/env";
 import { AICacheModel } from "../models/ai-cache.model";
+import { HotelCacheModel } from "../models/hotel-cache.model";
 import { BudgetType, EstimatedCost, HotelSuggestion, ItineraryItem } from "../models/trip.model";
 import { createFallbackItinerary, createFallbackRegeneratedActivities } from "./ai-fallback.service";
 
@@ -26,7 +27,7 @@ type RegenerateDayInput = {
 
 const HOTEL_TYPES: HotelSuggestion["type"][] = ["budget", "mid", "luxury"];
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-const AI_CACHE_VERSION = "v2";
+const AI_CACHE_VERSION = "v3";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -87,6 +88,8 @@ const defaultHotels = (destination: string): HotelSuggestion[] => [
     reason: "Luxury experience with premium facilities and location.",
   },
 ];
+
+const destinationKey = (destination: string): string => destination.trim().toLowerCase().replace(/\s+/g, " ");
 
 const fallbackTripPlan = (input: GenerateTripPlanInput): TripPlanResult => ({
   itinerary: createFallbackItinerary(input.days, input.destination, input.interests),
@@ -243,6 +246,21 @@ const parseHotels = (value: unknown): HotelSuggestion[] => {
     .filter((hotel): hotel is HotelSuggestion => hotel !== null);
 };
 
+const normalizeHotels = (hotels: HotelSuggestion[], destination: string): HotelSuggestion[] => {
+  const byType = new Map<HotelSuggestion["type"], HotelSuggestion>();
+
+  hotels.forEach((hotel) => {
+    if (!byType.has(hotel.type)) {
+      byType.set(hotel.type, hotel);
+    }
+  });
+
+  const fallbackByType = new Map(defaultHotels(destination).map((hotel) => [hotel.type, hotel] as const));
+  const ordered: HotelSuggestion["type"][] = ["budget", "mid", "luxury"];
+
+  return ordered.map((type) => byType.get(type) ?? (fallbackByType.get(type) as HotelSuggestion));
+};
+
 const parseTripPlan = (payload: unknown, input: GenerateTripPlanInput): TripPlanResult | null => {
   if (!isRecord(payload)) {
     return null;
@@ -267,7 +285,7 @@ const parseRegeneratedActivities = (payload: unknown): string[] | null => {
   const activities = payload.activities
     .filter((activity): activity is string => typeof activity === "string")
     .map((activity) => activity.trim())
-    .filter(Boolean);
+    .filter((activity) => activity && activity.length >= 20);
 
   return activities.length > 0 ? activities : null;
 };
@@ -312,6 +330,62 @@ const callGemini = async (prompt: string): Promise<string | null> => {
   return typeof content === "string" && content.trim() ? content : null;
 };
 
+const getOrCreateHotelsForDestination = async (input: GenerateTripPlanInput): Promise<HotelSuggestion[]> => {
+  const key = destinationKey(input.destination);
+  const cached = await HotelCacheModel.findOne({ destinationKey: key }).lean();
+  if (cached && Array.isArray(cached.hotels) && cached.hotels.length > 0) {
+    return normalizeHotels(cached.hotels, input.destination);
+  }
+
+  const fallback = normalizeHotels(defaultHotels(input.destination), input.destination);
+  const apiKey = env.geminiApiKey;
+  if (!apiKey) {
+    return fallback;
+  }
+
+  const hotelPrompt = [
+    "You are an AI travel assistant.",
+    "Recommend hotels in STRICT JSON only with no markdown and no extra text.",
+    "Input:",
+    `Destination: ${input.destination}`,
+    `Budget: ${input.budgetType}`,
+    `Trip Duration: ${input.days} days`,
+    `Interests: ${input.interests.join(", ") || "none"}`,
+    "Recommend exactly 3 hotels: one Budget, one Mid-range, one Luxury.",
+    "Prefer real and well-known properties, realistic rating >= 4.0, central/attraction-friendly locations.",
+    "Do NOT include image URLs. Provide image_query only.",
+    'Output schema: {"recommended_hotels":[{"name":"","category":"Budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
+  ].join("\n");
+
+  try {
+    const raw = await callGemini(hotelPrompt);
+    if (!raw) {
+      return fallback;
+    }
+    const parsedJson = parseJsonPayload(raw);
+    const hotelPayload = isRecord(parsedJson) ? parsedJson.recommended_hotels ?? parsedJson.hotels : parsedJson;
+    const parsedHotels = normalizeHotels(parseHotels(hotelPayload), input.destination);
+
+    if (parsedHotels.length > 0) {
+      await HotelCacheModel.findOneAndUpdate(
+        { destinationKey: key },
+        {
+          destinationKey: key,
+          destination: input.destination,
+          hotels: parsedHotels,
+          updatedAt: new Date(),
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      return parsedHotels;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+};
+
 const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanResult> => {
   const fallback = fallbackTripPlan(input);
   const key = buildCacheKey(input);
@@ -320,7 +394,8 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
   if (cached && typeof cached.response === "object" && cached.response !== null) {
     const parsedCached = parseTripPlan(cached.response, input);
     if (parsedCached) {
-      return parsedCached;
+      const hotels = await getOrCreateHotelsForDestination(input);
+      return { ...parsedCached, hotels };
     }
   }
 
@@ -328,13 +403,14 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
     const prompt = [
       "Generate a travel plan in JSON only. No markdown. No extra text.",
       "Use this exact schema:",
-      '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0},"recommended_hotels":[{"name":"","category":"Budget","price_per_night":"","location":"","rating":4.2,"image_query":"","features":["",""],"reason":""}]}',
+      '{"itinerary":[{"day":1,"activities":["..."]}],"budget":{"flights":0,"accommodation":0,"food":0,"activities":0,"total":0}}',
       "Create exactly one itinerary item per day from day 1 to the requested number of days.",
       "Every day must have distinct activities. Do not repeat the same activities across days.",
       "Reflect interests in different ways across different days.",
-      "For hotels, recommend exactly 3 real and well-known hotels: one Budget, one Mid-range, one Luxury.",
-      "Hotels must be in the destination (or nearest relevant area), realistic, and preferably rating >= 4.0.",
-      "Do not generate image URLs. Provide image_query only.",
+      "For each day, provide 3 to 5 activities.",
+      "Each activity should be descriptive and practical, around 12 to 24 words, not short phrases.",
+      "Include a mix of morning, afternoon, and evening style recommendations.",
+      "Mention specific local experiences/areas where possible instead of generic lines.",
       `destination=${input.destination}`,
       `days=${input.days}`,
       `budget=${input.budgetType}`,
@@ -351,18 +427,22 @@ const generateTripPlan = async (input: GenerateTripPlanInput): Promise<TripPlanR
       if (!parsedPlan) {
         continue;
       }
+      const hotels = await getOrCreateHotelsForDestination(input);
+      const finalPlan: TripPlanResult = { ...parsedPlan, hotels };
 
       await AICacheModel.findOneAndUpdate(
         { key },
-        { key, input, response: parsedPlan, createdAt: new Date() },
+        { key, input, response: finalPlan, createdAt: new Date() },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-      return parsedPlan;
+      return finalPlan;
     }
   } catch {
-    return fallback;
+    const hotels = await getOrCreateHotelsForDestination(input);
+    return { ...fallback, hotels };
   }
-  return fallback;
+  const hotels = await getOrCreateHotelsForDestination(input);
+  return { ...fallback, hotels };
 };
 
 const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
@@ -377,6 +457,9 @@ const regenerateDay = async (input: RegenerateDayInput): Promise<string[]> => {
     `Destination: ${input.destination}`,
     `Day number: ${input.day}`,
     `Preferences: ${input.preferences?.trim() || "none"}`,
+    "Return 3 to 5 detailed activities.",
+    "Each activity should be descriptive and practical, around 12 to 24 words.",
+    "Activities must feel fresh and not be generic copies.",
     'Response format: {"activities":["activity 1","activity 2","activity 3"]}',
   ].join("\n");
 
