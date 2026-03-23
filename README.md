@@ -309,5 +309,3 @@ All APIs follow a consistent envelope:
 - Provide direct outbound hotel booking links (official hotel/OTA pages) for better conversion and backlink opportunities.
 - Introduce a RAG-enhanced travel intelligence pipeline so AI responses are grounded in fresher, destination-specific context.
 - Upgrade to a more capable paid LLM tier for better itinerary quality, more reliable cost reasoning, and larger token context.
-
----
