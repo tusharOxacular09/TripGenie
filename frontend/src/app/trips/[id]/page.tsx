@@ -1,9 +1,13 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ArrowLeft, Calendar, Clock, DollarSign, MapPin, Trash2 } from "lucide-react";
 import { AppShell } from "../../../components/app-shell";
 import { ProtectedPage } from "../../../components/protected-page";
+import { ErrorState } from "../../../components/shared/state-components";
+import { CostBreakdownCard } from "../../../components/trips/cost-breakdown-card";
+import { HotelSuggestionsCard } from "../../../components/trips/hotel-suggestions-card";
 import { ItineraryDayEditor } from "../../../features/trips/components/itinerary-day-editor";
 import { tripValidators } from "../../../features/trips/trip.validators";
 import { getErrorMessage } from "../../../shared/error-message";
@@ -11,12 +15,14 @@ import { tripsApi } from "../../../services/api/trips.api";
 import { Trip } from "../../../types/api";
 
 export default function TripDetailsPage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const tripId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -60,46 +66,109 @@ export default function TripDetailsPage() {
     updateTrip(result);
   };
 
+  const onDeleteTrip = async () => {
+    if (!tripId || deleting) return;
+    const confirmed = window.confirm("Delete this trip? This action cannot be undone.");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      await tripsApi.deleteTrip(tripId);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to delete trip"));
+      setDeleting(false);
+    }
+  };
+
+  const statusColors: Record<string, string> = {
+    draft: "bg-amber-50 text-amber-700",
+    generated: "bg-indigo-50 text-indigo-700",
+  };
+
+  const budgetLabels: Record<string, string> = {
+    low: "Budget",
+    medium: "Standard",
+    high: "Premium",
+  };
+
+  const formattedDate = (value: string): string => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
   return (
     <ProtectedPage>
       <AppShell>
-        {loading ? <p className="text-slate-400">Loading trip...</p> : null}
-        {error ? <p className="rounded-md bg-red-950 px-3 py-2 text-sm text-red-300">{error}</p> : null}
+        {loading ? (
+          <div className="mx-auto max-w-5xl space-y-6">
+            <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
+            <div className="h-40 w-full animate-pulse rounded-2xl bg-slate-200" />
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="h-64 animate-pulse rounded-2xl bg-slate-200" />
+              <div className="h-64 animate-pulse rounded-2xl bg-slate-200" />
+            </div>
+          </div>
+        ) : null}
+        {!loading && error ? <ErrorState title="Trip not found" message={error} /> : null}
         {!loading && !error && trip ? (
-          <div className="space-y-6">
-            <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-              <h1 className="text-2xl font-semibold">{trip.destination}</h1>
-              <p className="mt-1 text-slate-400">
-                {trip.days} days • {trip.budgetType} budget • status: {trip.status}
-              </p>
-              <p className="mt-2 text-slate-300">Estimated total: ${trip.estimatedCost.total}</p>
+          <div className="mx-auto max-w-5xl space-y-6">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
+
+            <section className="shadow-card rounded-2xl bg-white p-6 sm:p-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50">
+                      <MapPin className="h-6 w-6 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h1 className="font-display text-3xl font-bold text-slate-900">{trip.destination}</h1>
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" /> {trip.days} days
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <DollarSign className="h-3.5 w-3.5" /> {budgetLabels[trip.budgetType]}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" /> {formattedDate(trip.updatedAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium capitalize ${statusColors[trip.status]}`}>
+                    {trip.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onDeleteTrip}
+                    disabled={deleting}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
             </section>
 
-            <section className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-                <h2 className="mb-3 font-medium">Cost breakdown</h2>
-                <ul className="space-y-1 text-sm text-slate-300">
-                  <li>Flights: ${trip.estimatedCost.flights}</li>
-                  <li>Accommodation: ${trip.estimatedCost.accommodation}</li>
-                  <li>Food: ${trip.estimatedCost.food}</li>
-                  <li>Activities: ${trip.estimatedCost.activities}</li>
-                </ul>
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-                <h2 className="mb-3 font-medium">Hotel suggestions</h2>
-                <ul className="space-y-2 text-sm text-slate-300">
-                  {trip.hotels.map((hotel) => (
-                    <li key={`${hotel.name}-${hotel.type}`} className="flex items-center justify-between">
-                      <span>{hotel.name}</span>
-                      <span className="rounded bg-slate-800 px-2 py-1 text-xs uppercase">{hotel.type}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <section className="grid gap-6 md:grid-cols-2">
+              <CostBreakdownCard breakdown={trip.estimatedCost} />
+              <HotelSuggestionsCard hotels={trip.hotels} />
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-xl font-semibold">Itinerary</h2>
+              <h2 className="font-display text-xl font-bold text-slate-900">Itinerary</h2>
               {trip.itinerary.map((dayPlan) => (
                 <ItineraryDayEditor
                   key={dayPlan.day}

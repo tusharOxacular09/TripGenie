@@ -24,6 +24,7 @@ export type EstimatedCost = {
 export type HotelSuggestion = {
   name: string;
   type: HotelType;
+  description?: string;
 };
 
 export type Trip = {

@@ -21,6 +21,9 @@ export const tripsApi = {
     const response = await apiClient.get<Envelope<{ trip: Trip }>>(`/trips/${tripId}`);
     return response.data.data.trip;
   },
+  deleteTrip: async (tripId: string) => {
+    await apiClient.delete<Envelope<null>>(`/trips/${tripId}`);
+  },
   addActivity: async (tripId: string, day: number, activity: string) => {
     const response = await apiClient.patch<Envelope<{ trip: Trip }>>(`/trips/${tripId}/add-activity`, {
       day,

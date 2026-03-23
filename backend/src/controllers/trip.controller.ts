@@ -124,4 +124,23 @@ const regenerateDay = (req: Request, res: Response, next: NextFunction): void =>
     .catch(next);
 };
 
-export { addActivity, createTrip, getTripById, getTrips, regenerateDay, removeActivity };
+const deleteTrip = (req: Request, res: Response, next: NextFunction): void => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) {
+    return;
+  }
+
+  const tripId = getTripIdParam(req, res);
+  if (!tripId) {
+    return;
+  }
+
+  tripService
+    .deleteTrip(userId, tripId)
+    .then(() => {
+      res.status(200).json(apiResponse.success("Trip deleted successfully", null));
+    })
+    .catch(next);
+};
+
+export { addActivity, createTrip, deleteTrip, getTripById, getTrips, regenerateDay, removeActivity };

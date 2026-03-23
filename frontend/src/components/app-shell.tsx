@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Plane } from "lucide-react";
 import { authStorage } from "../lib/auth";
 import { useAppDispatch } from "../store/hooks";
 import { logout } from "../store/auth.slice";
@@ -22,14 +23,17 @@ export function AppShell({ children }: Props) {
   };
 
   const navLinkClass = (path: string) =>
-    `rounded-md px-3 py-2 text-sm ${pathname === path ? "bg-slate-800 text-white" : "text-slate-300 hover:bg-slate-800"}`;
+    `rounded-lg px-3 py-2 text-sm ${pathname === path ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800">
+    <div className="min-h-screen bg-[#f4f6fb] text-slate-900">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard" className="text-lg font-semibold">
-            TripGenie
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
+              <Plane className="h-5 w-5 text-white" />
+            </span>
+            <span className="font-display text-lg font-bold text-slate-900">TripGenie</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Link href="/dashboard" className={navLinkClass("/dashboard")}>
@@ -44,7 +48,7 @@ export function AppShell({ children }: Props) {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-md bg-slate-800 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700"
+              className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800"
             >
               Logout
             </button>

@@ -1,7 +1,18 @@
 import type { Metadata } from "next";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthBootstrapper } from "../features/auth/auth-bootstrapper";
 import { StoreProvider } from "../store/provider";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+});
 
 export const metadata: Metadata = {
   title: "TripGenie",
@@ -15,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+      <body className={`${inter.variable} ${plusJakarta.variable} min-h-screen antialiased`}>
         <StoreProvider>
           <AuthBootstrapper />
           {children}

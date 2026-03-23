@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+:root {
+  --bg: #f4f6fb;
+  --fg: #0f172a;
+  --card: #ffffff;
+  --muted: #64748b;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --border: #e2e8f0;
+  --danger: #dc2626;
+}
+
 body {
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.shadow-card {
+  box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 0 0 1px rgb(226 232 240 / 0.7);
+}
+
+.font-display {
+  font-family: var(--font-plus-jakarta), "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+}
+
+button,
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }

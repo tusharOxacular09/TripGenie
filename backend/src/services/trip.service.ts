@@ -215,6 +215,22 @@ const regenerateDay = async (userId: string, tripId: string, payload: unknown) =
   return trip.toObject();
 };
 
+const deleteTrip = async (userId: string, tripId: string) => {
+  const parsedUserId = assertUserId(userId);
+  if (!Types.ObjectId.isValid(tripId)) {
+    throw new HttpError("Invalid trip identifier", 400);
+  }
+
+  const deletedTrip = await TripModel.findOneAndDelete({
+    _id: new Types.ObjectId(tripId),
+    userId: parsedUserId,
+  });
+
+  if (!deletedTrip) {
+    throw new HttpError("Trip not found", 404);
+  }
+};
+
 export const tripService = {
   createTrip,
   getTrips,
@@ -222,4 +238,5 @@ export const tripService = {
   addActivity,
   removeActivity,
   regenerateDay,
+  deleteTrip,
 };
